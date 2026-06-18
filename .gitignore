@@ -29,6 +29,10 @@ modified/
 # R Studio project artefacts
 .Rproj.user/
 
+# R package build artefacts
+fvfmR/*.tar.gz
+fvfmR/*.Rcheck/
+
 # macOS finder metadata
 .DS_Store
 

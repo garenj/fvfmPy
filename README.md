@@ -100,6 +100,33 @@ All output files are written to the TIFF folder:
 
 ---
 
+## R package
+
+For users who prefer R and RStudio, an R wrapper package is available in the
+[`fvfmR/`](fvfmR/) subdirectory. It exposes the same pipeline via three
+simple R functions, with the Python backend running transparently via
+[reticulate](https://rstudio.github.io/reticulate/).
+
+```r
+# Install from GitHub (run once)
+remotes::install_github("pieterarnold/fvfm-pipeline", subdir = "fvfmR")
+
+# Set up the Python environment (run once after installing)
+library(fvfm)
+fvfm_setup()
+
+# Use
+convert_pim("path/to/pim/folder")           # generate ImagingWin script.prg
+run_fvfm("path/to/tif/folder")              # run the full analysis pipeline
+run_fvfm("path/to/tif/folder",
+         lock_transforms = TRUE)            # lock rotation/crop across images
+```
+
+The OpenCV GUI windows appear as native OS windows alongside RStudio. Text
+prompts (grid dimensions, CSV overwrite) appear in the R console.
+
+---
+
 ## Documentation
 
 See [USER_GUIDE.md](USER_GUIDE.md) for detailed installation instructions, a walkthrough of every interactive step, output file descriptions, and troubleshooting.
