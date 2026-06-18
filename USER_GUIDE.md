@@ -12,13 +12,14 @@ Computes Fv/Fm = (Fm − Fo) / Fm for each leaf disc and exports results to CSV.
 3. [Install VS Code](#3-install-vs-code)
 4. [Get the pipeline files](#4-get-the-pipeline-files)
 5. [Set up the Python environment](#5-set-up-the-python-environment)
-6. [Prepare your image files](#6-prepare-your-image-files)
-7. [Run the pipeline](#7-run-the-pipeline)
-8. [Interactive steps — what to do at each screen](#8-interactive-steps--what-to-do-at-each-screen)
-9. [Output files](#9-output-files)
-10. [Resuming an interrupted session](#10-resuming-an-interrupted-session)
-11. [Command-line options](#11-command-line-options)
-12. [Troubleshooting](#12-troubleshooting)
+6. [Convert .pim files to TIFF](#6-convert-pim-files-to-tiff)
+7. [Prepare your TIFF files](#7-prepare-your-tiff-files)
+8. [Run the pipeline](#8-run-the-pipeline)
+9. [Interactive steps — what to do at each screen](#9-interactive-steps--what-to-do-at-each-screen)
+10. [Output files](#10-output-files)
+11. [Resuming an interrupted session](#11-resuming-an-interrupted-session)
+12. [Command-line options](#12-command-line-options)
+13. [Troubleshooting](#13-troubleshooting)
 
 ---
 
@@ -154,17 +155,65 @@ This downloads and installs OpenCV, NumPy, pandas, scikit-image, and matplotlib.
 
 ---
 
-## 6. Prepare your image files
+## 6. Convert .pim files to TIFF
 
-- Export your Walz ImagingWin measurements as **multi-frame TIFF** (`.tif` or `.tiff`).
-- Each file must contain **at least two frames**: frame 1 = Fo (dark-adapted), frame 2 = Fm (saturating pulse).
+Skip this section if you already have multi-frame TIFF files.
+
+Raw measurements from the Walz ImagingWinGigE software are saved as proprietary `.pim` files. Before running the FvFm pipeline you must convert them to multi-frame TIFF. The conversion itself must happen on the **Windows machine running ImagingWin**, but `generate_prg.py` creates the conversion script for you.
+
+### Step A — Generate the ImagingWin script
+
+On any machine (macOS or Windows), with the venv active:
+
+**macOS:**
+```bash
+python3 generate_prg.py /path/to/your/pim/folder
+```
+
+**Windows:**
+```
+python generate_prg.py C:\path\to\your\pim\folder
+```
+
+Or omit the path and type it when prompted. The script will:
+1. Find every `.pim` file in the folder (sorted alphabetically).
+2. Write a `script.prg` file into that same folder.
+3. Print a summary of the files queued.
+
+**Tip — inserting the path without typing:** drag the folder from Finder / File Explorer into the terminal after typing `python3 generate_prg.py ` (with a trailing space).
+
+The generated `script.prg` looks like this:
+```
+-- Program Start -- |
+Load Pim File = |27_120_y2_i
+Export to Tiff File = |27_120_y2_i.tif
+Load Pim File = |27_15_y2_i
+Export to Tiff File = |27_15_y2_i.tif
+...
+```
+
+> **Note:** ImagingWin requires the `Load Pim File` line to omit the `.pim` extension. `generate_prg.py` handles this automatically.
+
+### Step B — Run the script in ImagingWin (Windows only)
+
+1. Copy `script.prg` to the Windows machine if needed (e.g. via Dropbox or USB).
+2. Open **ImagingWinGigE**.
+3. From the menu, choose **Script → Load script**, and select `script.prg`.
+4. Click **Run**. ImagingWin will load and export each `.pim` file in sequence.
+5. When complete, the `.tif` files will be in the same folder as the `.pim` files.
+
+---
+
+## 7. Prepare your TIFF files
+
+- Each TIFF file must contain **at least two frames**: frame 1 = Fo (dark-adapted), frame 2 = Fm (saturating pulse). This is the default multi-frame export from ImagingWin.
 - Place all TIFF files for one batch into a single folder, for example:  
   `~/Dropbox/Experiment1/tifs/`
 - You do not need to rename the files — the pipeline processes them in alphabetical order.
 
 ---
 
-## 7. Run the pipeline
+## 8. Run the pipeline
 
 Make sure the virtual environment is active (you see `(.venv)` in the prompt). Then:
 
@@ -196,7 +245,7 @@ python3 FvFm_pipeline.py ~/Dropbox/Experiment1/tifs/ --lock-transforms
 
 ---
 
-## 8. Interactive steps — what to do at each screen
+## 9. Interactive steps — what to do at each screen
 
 The pipeline processes one TIFF file at a time. For each file you will see a sequence of GUI windows and terminal prompts. The steps are:
 
@@ -328,7 +377,7 @@ results_all.csv already exists. Overwrite? [y/n]:
 
 ---
 
-## 9. Output files
+## 10. Output files
 
 All output files are written to your TIFF folder:
 
@@ -353,7 +402,7 @@ All output files are written to your TIFF folder:
 
 ---
 
-## 10. Resuming an interrupted session
+## 11. Resuming an interrupted session
 
 If you close the terminal or press **Esc** mid-session, the pipeline saves a `checkpoint.json` in your TIFF folder recording all images processed so far.
 
@@ -369,10 +418,11 @@ To **start fresh** (reprocess all files), delete `checkpoint.json` from your TIF
 
 ---
 
-## 11. Command-line options
+## 12. Command-line options
 
 ```
 python3 FvFm_pipeline.py [directory] [--lock-transforms]
+python  FvFm_pipeline.py [directory] [--lock-transforms]   # Windows
 ```
 
 | Argument | Description |
@@ -382,7 +432,7 @@ python3 FvFm_pipeline.py [directory] [--lock-transforms]
 
 ---
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
 ### "command not found: python3" (macOS) / "'python' is not recognized" (Windows)
 Python is not installed or was not added to PATH during installation. Repeat Section 2, making sure to tick **"Add Python to PATH"** on Windows, then restart your computer and try again.
