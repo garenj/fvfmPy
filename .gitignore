@@ -11,6 +11,7 @@ checkpoint.json
 checkpoint.json.tmp
 tmp_img.jpg
 tmp_data.json
+json_remake.py
 results_all.csv
 output*.jpg
 
