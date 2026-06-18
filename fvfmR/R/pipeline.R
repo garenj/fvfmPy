@@ -70,6 +70,12 @@
 run_fvfm <- function(directory, lock_transforms = FALSE) {
   .ensure_python()
   dir <- normalizePath(directory, mustWork = TRUE)
+  # Close any open OpenCV windows on exit, including when the user presses Esc
+  # to interrupt from the R console (reticulate may bypass Python's own cleanup).
+  on.exit(
+    try(reticulate::py_run_string("import cv2; cv2.destroyAllWindows()"), silent = TRUE),
+    add = TRUE
+  )
   reticulate::py$run_pipeline(dir, lock_transforms = isTRUE(lock_transforms))
   invisible(NULL)
 }

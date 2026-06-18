@@ -40,6 +40,8 @@ def run_pipeline(directory, lock_transforms=False):
     lock_transforms : bool
         If True, pass --lock-transforms to the pipeline.
     """
+    import cv2
+
     d = _py_dir()
     if d not in sys.path:
         sys.path.insert(0, d)
@@ -53,6 +55,8 @@ def run_pipeline(directory, lock_transforms=False):
     try:
         runpy.run_path(os.path.join(d, 'FvFm_pipeline.py'), run_name='__main__')
     finally:
+        # Always close OpenCV windows, even if the pipeline was interrupted.
+        cv2.destroyAllWindows()
         sys.argv = old_argv
         os.chdir(old_cwd)   # restore R's working directory after pipeline os.chdir()
 
