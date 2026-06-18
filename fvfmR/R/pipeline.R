@@ -1,5 +1,9 @@
-.fvfm_env_name  <- "fvfm-env"
-.fvfm_py_loaded <- FALSE
+.fvfm_env_name <- "fvfm-env"
+
+# Mutable state lives in an environment so it can be updated after the
+# namespace is locked (plain variables cannot be modified with <<- once locked).
+.fvfm_state <- new.env(parent = emptyenv())
+.fvfm_state$py_loaded <- FALSE
 
 # Activate the virtual environment and load the Python entry point.
 # Called internally before every user-facing function; safe to call multiple times.
@@ -20,8 +24,8 @@
     reticulate::use_virtualenv(.fvfm_env_name, required = TRUE)
   }
 
-  # Source the Python entry point once per session; cache in package env.
-  if (!isTRUE(.fvfm_py_loaded)) {
+  # Source the Python entry point once per session; cache in package state env.
+  if (!isTRUE(.fvfm_state$py_loaded)) {
     entry  <- system.file("python", "fvfm_run.py", package = "fvfm")
     py_dir <- system.file("python",                 package = "fvfm")
     if (!nzchar(entry)) {
@@ -29,7 +33,7 @@
     }
     reticulate::source_python(entry)
     reticulate::py$setup(py_dir)   # register inst/python on Python's sys.path
-    .fvfm_py_loaded <<- TRUE
+    .fvfm_state$py_loaded <- TRUE
   }
 
   invisible(NULL)
