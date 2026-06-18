@@ -1,0 +1,35 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+venv/
+.venv/
+
+# Pipeline runtime outputs and temp files
+checkpoint.json
+checkpoint.json.tmp
+tmp_img.jpg
+tmp_data.json
+results_all.csv
+output*.jpg
+
+# Raw image data (large binary files — share separately)
+*.tif
+*.tiff
+*.pim
+
+# Archives
+*.zip
+
+# Working copies folder
+modified/
+
+# R Studio project artefacts
+.Rproj.user/
+
+# macOS finder metadata
+.DS_Store
+
+# VS Code workspace settings (optional — remove this line to share settings with collaborators)
+.vscode/
