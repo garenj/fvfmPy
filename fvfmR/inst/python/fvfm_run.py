@@ -56,7 +56,9 @@ def run_pipeline(directory, lock_transforms=False):
         runpy.run_path(os.path.join(d, 'FvFm_pipeline.py'), run_name='__main__')
     finally:
         # Always close OpenCV windows, even if the pipeline was interrupted.
+        # waitKey(1) flushes the event queue so windows visually close on macOS.
         cv2.destroyAllWindows()
+        cv2.waitKey(1)
         sys.argv = old_argv
         os.chdir(old_cwd)   # restore R's working directory after pipeline os.chdir()
 

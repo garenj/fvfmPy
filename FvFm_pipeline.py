@@ -291,6 +291,7 @@ while i < len(tif_files):
                     break
 
             cv2.destroyWindow(PREVIEW_WIN)
+            cv2.waitKey(1)  # flush event queue so window actually closes on macOS
 
             if redo:
                 print("  Redoing ROI picker.")
