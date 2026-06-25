@@ -3,6 +3,7 @@ Image analysis pipeline for semi-automated processing of leaf fluorescence image
 This script accepts .tif files converted from .pim from a Walz imaging PAM fluorometer.
 
 Pipeline steps (per image):
+  0. convert_pim_to_tif  - optionally, convert .pim file to .tif if needed
   1. load_tif_img        — load the Fo (first) frame as 8-bit grayscale for display
   2. correct_perspective — optional interactive rotation to level a tilted tray
   3. crop_image          — optional interactive crop to exclude tray edges / labels
@@ -38,6 +39,7 @@ from get_Fo_Fm import get_Fo_Fm
 from perspective_corrector import correct_perspective
 from image_cropper import crop_image
 from guess_grid_dims import estimate_grid_dims, confirm_grid_dims, _focus_terminal
+from convert_pim_to_tif import convert_pim_to_tif
 
 # Set up parameters
 ROI_SIZE = 10  # side length of the square averaging window in pixels (roi_size × roi_size)
@@ -60,18 +62,18 @@ args = parser.parse_args()
 if args.directory:
     directory_path = args.directory
 else:
-    directory_path = input("Enter path to folder containing .tif files: ").strip()
+    directory_path = input("Enter path to folder containing .tif or .pim files: ").strip()
 
 if not os.path.isdir(directory_path):
     sys.exit(f"Error: '{directory_path}' is not a valid directory.")
 
-os.chdir(directory_path)
-contents = os.listdir()
+#os.chdir(directory_path)
+contents = os.listdir(directory_path)
 
-# Filter and sort .tif files so processing order is consistent and reproducible
-tif_files = sorted([f for f in contents if f.endswith('.tif') or f.endswith('.tiff')])
+# Filter and sort .tif and .pim files so processing order is consistent and reproducible
+tif_files = sorted([f for f in contents if f.endswith('.tif') or f.endswith('.tiff') or f.endswith('.pim')])
 
-print(f"Found {len(tif_files)} TIFF files")
+print(f"Found {len(tif_files)} TIFF and/or PIM files")
 print(tif_files)
 
 # --- Checkpoint: resume from a previous interrupted run if available ---
@@ -107,8 +109,15 @@ locked_crop = None   # stores crop_rect after user chooses to lock
 # Step 2: Loop over image files (index-based to allow going back)
 i = 0
 while i < len(tif_files):
-    fn = tif_files[i]
+    fn = os.path.join(directory_path, tif_files[i]) #tif_files[i]
     print(f"Processing ({i+1}/{len(tif_files)}): {fn}")
+
+    # If needed, convert .pim to .tif file
+    if fn.endswith('.pim'):
+        fn = convert_pim_to_tif(fn) # This function converts pim to tif, then saves a new tif
+                                    # file in the same directory and returns the filename, so
+                                    # the remaining code can continue as normal
+
 
     # Load Fo frame as 8-bit grayscale
     img = load_tif_img(fn)
