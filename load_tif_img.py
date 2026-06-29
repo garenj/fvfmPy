@@ -5,6 +5,9 @@ normalised 8-bit grayscale image for use in centroid detection.
 import cv2
 import numpy as np
 
+from PySide6.QtGui import QImage, QPixmap
+
+
 def load_tif_img(fn):
     """
     Read a multi-frame TIFF and return the Fo (first) frame as 8-bit grayscale.
@@ -28,3 +31,17 @@ def load_tif_img(fn):
     scaled_img = ((Fo_frame - min_val) / (max_val - min_val)) * 255
     gray = scaled_img.astype(np.uint8)
     return(gray)
+
+def numpy_to_pixmap(gray):
+    h, w = gray.shape
+
+    qimage = QImage(
+        gray.data,
+        w,
+        h,
+        gray.strides[0],          # bytes per line
+        QImage.Format_Grayscale8
+    )
+
+    # Make a copy so Qt owns the image data
+    return QPixmap.fromImage(qimage.copy())
