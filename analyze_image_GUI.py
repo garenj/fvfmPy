@@ -1,6 +1,6 @@
 import cv2
 from pathlib import PurePath
-
+import pandas
 
 
 def analyze_ROIs(fn, rois, ROIsize, expected_cols, warp_M=None, warp_size=None, crop_rect=None, output_dir=None):
@@ -68,11 +68,11 @@ def analyze_ROIs(fn, rois, ROIsize, expected_cols, warp_M=None, warp_size=None, 
         # Guard against dead/unlit discs where Fm ≈ 0
         FvFm = (mean_Fm_cur - mean_Fo_cur) / mean_Fm_cur if mean_Fm_cur > 0 else float('nan')
 
-        leaf_number = int(row) * expected_cols + int(col) + 1
+        leaf_number = (int(row)-1) * expected_cols + int(col)
         results.append({
             "filename": str(PurePath(fn).name),
-            "row": int(row) + 1,
-            "col": int(col) + 1,
+            "row": int(row),
+            "col": int(col),
             "leaf_number": leaf_number,
             "centroid_x": float(cx),
             "centroid_y": float(cy),
@@ -80,6 +80,19 @@ def analyze_ROIs(fn, rois, ROIsize, expected_cols, warp_M=None, warp_size=None, 
             "mean_Fm": mean_Fm_cur,
             "FvFm": float(FvFm)
         })
+
+    results.sort(key=lambda x: x["leaf_number"])
+    #results = dict(sorted(results.items(), key=lambda item: item[1]['leaf_number']))
+
+    if fn.endswith('.tif'):
+        outfile = fn.replace(".tif", ".csv")
+    if fn.endswith('.tiff'):
+        outfile = fn.replace(".tiff", ".csv")
+    if fn.endswith('.pim'):
+        outfile = fn.replace(".pim", ".csv")
+
+    df = pandas.DataFrame(results)
+    df.to_csv(outfile, index=False)
 
     return results
    

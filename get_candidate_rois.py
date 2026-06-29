@@ -141,6 +141,51 @@ def assign_rois_to_grid(img, centroid_dicts, expected_rows, expected_cols, ROI_S
             "mean_intensity": img[y1:y2, x1:x2].mean()
         })
 
+    # Check row and column assignments; we want the numbering to start in the top left
+    first_row_y = []
+    last_row_y = []
+    first_col_x = []
+    last_col_x = []
+
+    for cur in results:
+        cx,cy = cur['centroid']
+
+        if cur['row'] == 0:
+            first_row_y.append(cy)
+        if cur['row'] == (expected_rows - 1):
+            last_row_y.append(cy)
+
+        if cur['col'] == 0:
+            first_col_x.append(cx)
+        if cur['col'] == (expected_cols - 1):
+            last_col_x.append(cx)
+    
+
+    # Check if row 0 is on top or bottom, switch if so.
+    # Guard against edge rows being completely empty (all discs missing).
+    if first_row_y and last_row_y and np.mean(first_row_y) > np.mean(last_row_y):
+        res_new = []
+        for cur in results:
+            cur["row"] = expected_rows-cur["row"]-1
+            res_new.append(cur)
+        results = res_new
+
+    # Check if col 0 is on left or right, switch if so.
+    if first_col_x and last_col_x and np.mean(first_col_x) > np.mean(last_col_x):
+        res_new = []
+        for cur in results:
+            cur["col"] = expected_cols-cur["col"]-1
+            res_new.append(cur)
+        results = res_new
+
+    # Finally, add 1 to all row and column numbers to account for zero indexing?
+    res_new = []
+    for res in results:
+        res["col"] = res["col"]+1
+        res["row"] = res["row"]+1
+        res_new.append(res)
+    results = res_new
+
     return results
 
 

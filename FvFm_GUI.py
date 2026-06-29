@@ -46,14 +46,6 @@ class ImageViewer(QWidget):
         self.resize(1000, 600)
 
 
-
-        #self.image_paths = sorted(
-        #    p for p in Path(image_folder).iterdir()
-        #    if p.suffix.lower() in IMAGE_EXTENSIONS
-        #)
-
-        #self.current_index = 0
-
         # ---------------- Graphics view ----------------
 
         self.scene = QGraphicsScene()
@@ -65,11 +57,7 @@ class ImageViewer(QWidget):
         self.pixmap_item = QGraphicsPixmapItem()
         self.scene.addItem(self.pixmap_item)
 
-        # Overlay point
-        #self.overlay_point = QGraphicsEllipseItem(-5, -5, 10, 10)
-        #self.overlay_point.setPen(QPen(QColor("red"), 2))
-        #self.overlay_point.setBrush(QColor("red"))
-        #self.scene.addItem(self.overlay_point)
+        # Overlay points
         self.points = []
         self.rois = []
         
@@ -308,7 +296,7 @@ class ImageViewer(QWidget):
         filename = str(self.image_paths[index])
 
         res = analyze_ROIs(filename, roi_list, ROIsize, expected_cols=9)
-        print(res)
+        #print(res)
 
         self.next_image()
 
@@ -316,16 +304,13 @@ class ImageViewer(QWidget):
     def choose_folder(self):
         dialog = QFileDialog(self)
         dialog.setFileMode(QFileDialog.Directory)
-        #dialog.exec()
-        #fileNames = Qt.QStringList()
         if dialog.exec():
             fileNames = dialog.selectedFiles()
             self.refresh_image_folder(fileNames[0])
             self.load_image(0)
-        #print(fileNames)
+
 
     def update_ROIsize(self):
-        
         self.load_image(self.current_index)
 
 
