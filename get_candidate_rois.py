@@ -35,7 +35,7 @@ def band_centers(values, n_bands):
     return np.array([s.mean() for s in splits])
 
 
-def detect_centroids(img, fn):
+def detect_centroids(img):
     """
     Segment leaf discs and return a list of dicts with cx, cy, area.
     No grid assignment — call assign_rois_to_grid() separately.

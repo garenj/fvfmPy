@@ -150,7 +150,7 @@ while i < len(tif_files):
                 print("  Crop locked for remaining images.")
 
     # Detect leaf disc centroids, estimate grid dims, confirm with user
-    centroid_dicts = detect_centroids(img, fn)
+    centroid_dicts = detect_centroids(img)
     centroids_xy = [(d["cx"], d["cy"]) for d in centroid_dicts]
     est_rows, est_cols = estimate_grid_dims(centroids_xy)
     ex_rows, ex_cols = confirm_grid_dims(img, centroids_xy, est_rows, est_cols,
