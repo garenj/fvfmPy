@@ -18,9 +18,10 @@ from scipy.ndimage import distance_transform_edt
 from skimage.segmentation import watershed
 from skimage.feature import peak_local_max
 
-ROI_SIZE = 20          # side length of square ROI (pixels) — used for darkness filtering only
-MIN_AREA = 200        # minimum area of a leaf disc to keep
-GAUSSIAN_BLUR = 3      # blur kernel to smooth thresholding
+#ROI_SIZE = 20          # side length of square ROI (pixels) — used for darkness filtering only
+#MIN_AREA = 200        # minimum area of a leaf disc to keep
+#GAUSSIAN_BLUR = 3      # blur kernel to smooth thresholding
+#ADAPTIVE_THRESH_VAL = 101 # Neighbourhood size for adaptive threshold
 
 
 def pca_rotate(points):
@@ -35,7 +36,11 @@ def band_centers(values, n_bands):
     return np.array([s.mean() for s in splits])
 
 
-def detect_centroids(img):
+def detect_centroids(img,
+                     ROI_SIZE = 20,          # side length of square ROI (pixels) — used for darkness filtering only
+                     MIN_AREA = 200,        # minimum area of a leaf disc to keep
+                     GAUSSIAN_BLUR = 3,      # blur kernel to smooth thresholding
+                     ADAPTIVE_THRESH_VAL = 101): # Neighbourhood size for adaptive threshold):
     """
     Segment leaf discs and return a list of dicts with cx, cy, area.
     No grid assignment — call assign_rois_to_grid() separately.
@@ -44,7 +49,7 @@ def detect_centroids(img):
 
     adaptive_thresh_image = cv2.adaptiveThreshold(blur, 255,
                                               cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                              cv2.THRESH_BINARY, 101, 2)
+                                              cv2.THRESH_BINARY, ADAPTIVE_THRESH_VAL, 2)
     binary = adaptive_thresh_image
     binary_clean = morphology.remove_small_objects(binary, min_size=MIN_AREA)
 
@@ -77,7 +82,7 @@ def detect_centroids(img):
     return centroids
 
 
-def assign_rois_to_grid(img, centroid_dicts, expected_rows, expected_cols):
+def assign_rois_to_grid(img, centroid_dicts, expected_rows, expected_cols, ROI_SIZE = 20):
     """
     Assign detected centroids to a rows x cols grid via PCA rotation and
     nearest-band matching. Returns roi list compatible with the pipeline.
