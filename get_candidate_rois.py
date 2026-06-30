@@ -40,7 +40,8 @@ def detect_centroids(img,
                      ROI_SIZE = 20,          # side length of square ROI (pixels) — used for darkness filtering only
                      MIN_AREA = 200,        # minimum area of a leaf disc to keep
                      GAUSSIAN_BLUR = 3,      # blur kernel to smooth thresholding
-                     ADAPTIVE_THRESH_VAL = 101): # Neighbourhood size for adaptive threshold):
+                     ADAPTIVE_THRESH_VAL = 101,
+                     WATERSHED_THRESH = 30): # Neighbourhood size for adaptive threshold):
     """
     Segment leaf discs and return a list of dicts with cx, cy, area.
     No grid assignment — call assign_rois_to_grid() separately.
@@ -56,7 +57,7 @@ def detect_centroids(img,
     distance = distance_transform_edt(binary_clean)
 
     coords = peak_local_max(distance,
-                            min_distance=30,
+                            min_distance=WATERSHED_THRESH,
                             footprint=np.ones((25, 25)),
                             labels=binary_clean)
 

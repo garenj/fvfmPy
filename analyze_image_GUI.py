@@ -104,15 +104,15 @@ def analyze_ROIs(fn, rois, ROIsize, expected_cols, rotate_angle = None, #warp_M=
     results.sort(key=lambda x: x["leaf_number"])
     #results = dict(sorted(results.items(), key=lambda item: item[1]['leaf_number']))
 
-    if fn.endswith('.tif'):
-        outfile = fn.replace(".tif", ".csv")
-    if fn.endswith('.tiff'):
-        outfile = fn.replace(".tiff", ".csv")
-    if fn.endswith('.pim'):
-        outfile = fn.replace(".pim", ".csv")
+    # if fn.endswith('.tif'):
+    #     outfile = fn.replace(".tif", ".csv")
+    # if fn.endswith('.tiff'):
+    #     outfile = fn.replace(".tiff", ".csv")
+    # if fn.endswith('.pim'):
+    #     outfile = fn.replace(".pim", ".csv")
 
-    df = pandas.DataFrame(results)
-    df.to_csv(outfile, index=False)
+    # df = pandas.DataFrame(results)
+    # df.to_csv(outfile, index=False)
 
     return results
    

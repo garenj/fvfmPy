@@ -1,5 +1,6 @@
 import sys
 import numpy as np
+import pandas
 from pathlib import Path, PurePath
 
 from PySide6.QtCore import Qt, QStringListModel, QRectF
@@ -40,6 +41,7 @@ ROI_SIZE = 15         # side length of square ROI (pixels)
 MIN_AREA = 200        # minimum area of a leaf disc to keep
 GAUSSIAN_BLUR = 3     # blur kernel to smooth thresholding
 ADAPTIVE_THRESH_VAL = 101 # Neighbourhood size for adaptive thresholding
+WATERSHED_THRESH = 30 # Watershed thresholding size
 
 
 class ImageViewer(QWidget):
@@ -48,7 +50,6 @@ class ImageViewer(QWidget):
 
         self.setWindowTitle("fvfmPy: Automated Fluorescence Image Processing")
         self.resize(1000, 600)
-
 
         # ---------------- Graphics view ----------------
 
@@ -67,6 +68,7 @@ class ImageViewer(QWidget):
         self.crop_coordinates = None
         self.current_image = None
         self.current_centroids = None
+        self.current_results = None
 
         # Cropper
         self.crop_rect = QGraphicsRectItem()
@@ -77,63 +79,57 @@ class ImageViewer(QWidget):
 
         self.crop_start = None
         self.crop_end = None
+        self.crop_mode = False
         
         # ---------------- Files list --------------
-        #self.files_list = QListView()
-        #self.files_list_model = QStringListModel()
-        #self.files_list.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
         self.list_widget = QListWidget()
         self.list_widget.setWindowTitle("Files:")
         self.list_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
 
         # 2. Prevent user input from changing selection by disabling mouse/key events
-        #self.files_list.setSelectionMode(QListView.SelectionMode.SingleSelection)
-        #self.files_list.mousePressEvent = lambda event: None  # Ignores mouse clicks
-        #self.files_list.keyPressEvent = lambda event: None    # Ignores arrow keys
         self.list_widget.setSelectionMode(QListView.SelectionMode.SingleSelection)
         self.list_widget.mousePressEvent = lambda event: None  # Ignores mouse clicks
         self.list_widget.keyPressEvent = lambda event: None    # Ignores arrow keys
 
         # ---------------- Controls ----------------
 
+        # Monitor events
         self.view.mouseDoubleClickEvent = self.image_double_clicked
         self.view.mousePressEvent = self.image_mouse_press
         self.view.mouseMoveEvent = self.image_mouse_move
         self.view.mouseReleaseEvent = self.image_mouse_release
+        self.view.setMouseTracking(True)
 
+        # Main layouts
         controls = QVBoxLayout()
-
         top_row_layout = QHBoxLayout()
 
+        # Widgets
         self.prev_button = QPushButton("<<")
         self.next_button = QPushButton(">>")
         self.analyze_button = QPushButton("Analyze")
         self.folder_button = QPushButton("Open folder...")
+        self.save_button = QPushButton("Save results")
+        self.crop_button = QPushButton("Crop")
+        self.undo_button = QPushButton("Undo crop and rotate")
 
-        #self.input_box = QLineEdit(self)
-
+        # Connect widgets to methods
         self.prev_button.clicked.connect(self.previous_image)
         self.next_button.clicked.connect(self.next_image)
         self.analyze_button.clicked.connect(self.analyze_image)
         self.folder_button.clicked.connect(self.choose_folder)
-
-        self.crop_mode = False
-        self.view.setMouseTracking(True)
-
-        self.crop_button = QPushButton("Crop")
+        self.save_button.clicked.connect(self.save_results)
         self.crop_button.clicked.connect(self.start_crop)
-
-        self.undo_button = QPushButton("Undo crop and rotate")
         self.undo_button.clicked.connect(self.undo_crop_rotate)
 
-
+        # First group of buttons
         top_row_layout.addWidget(self.prev_button)
         top_row_layout.addWidget(self.next_button)
         controls.addWidget(self.analyze_button)
         controls.addLayout(top_row_layout)
         controls.addWidget(self.folder_button)
-
+        controls.addWidget(self.save_button)
         self.analyze_button.setStyleSheet("font-weight: bold;")
 
         controls.addSpacing(20)
@@ -145,7 +141,7 @@ class ImageViewer(QWidget):
         line.setFrameShadow(QFrame.Shadow.Sunken)
         line.setStyleSheet("background-color: #c0c0c0;") # Optional: customize color
         
-
+        # Define sliders
         self.slider_ROIsize = QSlider(Qt.Horizontal)
         self.slider_ROIsize.setRange(2, 40)
         self.slider_ROIsize.setValue(ROI_SIZE)
@@ -155,6 +151,7 @@ class ImageViewer(QWidget):
         self.slider_MinArea = QSlider(Qt.Horizontal)
         self.slider_MinArea.setRange(20, 400)
         self.slider_MinArea.setValue(MIN_AREA)
+        self.slider_MinArea.setTickInterval(20)
         self.slider_MinArea.setTickPosition(QSlider.TickPosition.TicksAbove)
         self.MinArea_label = QLabel('', self)
 
@@ -170,6 +167,12 @@ class ImageViewer(QWidget):
         self.slider_AdaptThresh.setTickPosition(QSlider.TickPosition.TicksAbove)
         self.AdaptThresh_label = QLabel('', self)
 
+        self.slider_Watershed = QSlider(Qt.Horizontal)
+        self.slider_Watershed.setRange(5, 75)
+        self.slider_Watershed.setValue(WATERSHED_THRESH)
+        self.slider_Watershed.setTickPosition(QSlider.TickPosition.TicksAbove)
+        self.Watershed_label = QLabel('', self)
+
         self.slider_Rotate = QSlider(Qt.Horizontal)
         self.slider_Rotate.setRange(-45, 45)
         self.slider_Rotate.setValue(0)
@@ -180,8 +183,8 @@ class ImageViewer(QWidget):
         self.slider_MinArea.valueChanged.connect(self.update_MinArea)
         self.slider_GaussBlur.valueChanged.connect(self.update_GaussBlur)
         self.slider_AdaptThresh.valueChanged.connect(self.update_AdaptThresh)
+        self.slider_Watershed.valueChanged.connect(self.update_Watershed)
         self.slider_Rotate.valueChanged.connect(self.update_Rotate)
-
 
         self.row_col_layout = QHBoxLayout()
         self.row_input = QLineEdit()
@@ -200,13 +203,17 @@ class ImageViewer(QWidget):
         form.addRow("ROI size", self.slider_ROIsize)
         #form.addRow(line)
         form.addRow(self.MinArea_label)
-        form.addRow("Disc min. area", self.slider_MinArea)
+        form.addRow("Min area", self.slider_MinArea)
         #form.addRow(line)
         form.addRow(self.GaussBlur_label)
-        form.addRow("Gaussian blur", self.slider_GaussBlur)
+        form.addRow("Gauss", self.slider_GaussBlur)
 
         form.addRow(self.AdaptThresh_label)
-        form.addRow("Adaptive thresh.", self.slider_AdaptThresh)
+        form.addRow("Adapt", self.slider_AdaptThresh)
+
+        form.addRow(self.Watershed_label)
+        form.addRow("Wshed", self.slider_Watershed)
+
 
         controls.addLayout(form)
 
@@ -360,10 +367,11 @@ class ImageViewer(QWidget):
         ROIsize = self.slider_ROIsize.value()
         MinArea = self.slider_MinArea.value()
         GaussBlur = self.slider_GaussBlur.value()
-        AdaptThresh= self.slider_AdaptThresh.value()
+        AdaptThresh = self.slider_AdaptThresh.value()
+        Watershed = self.slider_Watershed.value()
 
         # Generate ROIs
-        centroid_dicts = detect_centroids(new_img, ROIsize, MinArea, 1+2*GaussBlur, 1+2*AdaptThresh)
+        centroid_dicts = detect_centroids(new_img, ROIsize, MinArea, 1+2*GaussBlur, 1+2*AdaptThresh, Watershed)
         self.current_centroids = centroid_dicts
         #print(centroid_dicts)
         centroids_xy = [(d["cx"], d["cy"]) for d in centroid_dicts]
@@ -479,8 +487,6 @@ class ImageViewer(QWidget):
         
 
 
-        
-
     def next_image(self):
         if not self.image_paths:
             return
@@ -512,7 +518,13 @@ class ImageViewer(QWidget):
         res = analyze_ROIs(filename, roi_list, ROIsize, expected_cols=9, 
                            rotate_angle=self.slider_Rotate.value(),
                            crop_rect=self.crop_coordinates)
-        #print(res)
+        
+
+        if self.current_results == None:
+            self.current_results = res
+        else:
+            self.current_results.extend(res)
+        print(self.current_results)
 
         self.toggle_completion()
 
@@ -542,6 +554,10 @@ class ImageViewer(QWidget):
 
     def update_AdaptThresh(self):
         self.AdaptThresh_label.setText(f'Adapt: {1+2*self.slider_AdaptThresh.value()}')
+        self.load_image(self.current_index)
+
+    def update_Watershed(self):
+        self.Watershed_label.setText(f'Adapt: {self.slider_Watershed.value()}')
         self.load_image(self.current_index)
 
     def update_Rotate(self):
@@ -575,8 +591,18 @@ class ImageViewer(QWidget):
         self.list_widget.item(index).setFont(font)
         self.list_widget.show()
 
+    def save_results(self):
+        fn, _ = QFileDialog.getSaveFileName(
+                                        None,
+                                        "Save File",
+                                        "results.csv",
+                                        "Comma-separated value files (*.csv)"
+                                    )
+        
+        results = self.current_results
 
-
+        df = pandas.DataFrame(results)
+        df.to_csv(fn, index=False)
 
 
 if __name__ == "__main__":
