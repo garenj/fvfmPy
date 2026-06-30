@@ -139,3 +139,75 @@ def convert_pim_to_tif(pim_file, width = 640, height = 480, frame_bytes = 640*48
 
     #print(f"Wrote {outfile}")
     return(outfile)
+
+
+
+# Main function for converting PIM to TIF. Saves a new .TIF file and returns filename
+def load_pim(pim_file, width = 640, height = 480, frame_bytes = 640*480, n_frames = 2):
+
+    with open(pim_file, "rb") as fn:
+
+        # Decompress and read the whole PIM file into memory
+        data_all = zlib.decompress(fn.read())
+
+        data_type = 0
+        pos = 0
+
+        # Skip over header material until we get to type of 01, indicating start of data
+        while data_type != 1:
+            data_read, pos = read_tlv(data_all, pos) 
+            data_type = data_read["tag"]
+        
+        # Advance position by 1 o skip start character
+        pos += 1
+
+        # Initialize set of frames to hold converted TIF
+        frames = []
+
+        # Loop over desired number of frames
+        for i in range(n_frames):
+
+            buf = data_all[pos:pos+frame_bytes] # Read one frame into buffer
+            pos += frame_bytes                  # Advance pointer by same number
+
+            # Check that we got the right number of bytes
+            if len(buf) != frame_bytes:
+                raise RuntimeError(
+                    f"Frame {i}: expected {frame_bytes} bytes, got {len(buf)}"
+                )
+
+            # Convert to unsigned 8-bit int and reshape
+            img = np.frombuffer(
+                buf,
+                dtype="u1"      # unsigned 8-bit int
+            ).reshape((height, width))
+
+            # Add to frames
+            frames.append(img)
+
+    stack = np.stack(frames)
+    """ 
+    # New output file name, just replace .pim with .tif
+    outfile = pim_file.replace(".pim", ".tif")
+
+    # Write the TIF file
+    tifffile.imwrite(
+        outfile,
+        stack,
+        photometric="minisblack"
+    )
+    """
+    #print(f"Wrote {outfile}")
+    return(stack)
+
+def load_pim_grayscale(pim_file, width = 640, height = 480, frame_bytes = 640*480, n_frames = 2):
+    frames = load_pim(pim_file, width, height, frame_bytes, n_frames)
+    Fo_frame = frames[0]
+
+    # Scale 16-bit fluorescence values to 8-bit for OpenCV thresholding
+    min_val = np.min(Fo_frame)
+    max_val = np.max(Fo_frame)
+    scaled_img = ((Fo_frame - min_val) / (max_val - min_val)) * 255
+    gray = scaled_img.astype(np.uint8)
+    return(gray)
+

@@ -178,7 +178,7 @@ def assign_rois_to_grid(img, centroid_dicts, expected_rows, expected_cols, ROI_S
             res_new.append(cur)
         results = res_new
 
-    # Finally, add 1 to all row and column numbers to account for zero indexing?
+    # Finally, add 1 to all row and column numbers to account for zero indexing
     res_new = []
     for res in results:
         res["col"] = res["col"]+1

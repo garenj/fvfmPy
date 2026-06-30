@@ -2,24 +2,44 @@ import cv2
 from pathlib import PurePath
 import pandas
 
+from convert_pim_to_tif import load_pim
+from perspective_corrector import apply_rotation
 
-def analyze_ROIs(fn, rois, ROIsize, expected_cols, warp_M=None, warp_size=None, crop_rect=None, output_dir=None):
+
+def analyze_ROIs(fn, rois, ROIsize, expected_cols, rotate_angle = None, #warp_M=None, warp_size=None, 
+                 crop_rect=None, output_dir=None):
 
     images = []
 
-    # Read the multi-frame TIFF file
-    success, images = cv2.imreadmulti(fn, images, flags=cv2.IMREAD_UNCHANGED)
-    if not success or len(images) < 2:
-        raise RuntimeError(
-            f"Expected at least 2 frames in '{fn}', got {len(images)}. "
-            "Check the file is a valid Walz PAM TIFF export."
-        )
+    if fn.endswith(".tif") or fn.endswith(".tiff"):
+        # Read the multi-frame TIFF file
+        success, images = cv2.imreadmulti(fn, images, flags=cv2.IMREAD_UNCHANGED)
+        if not success or len(images) < 2:
+            raise RuntimeError(
+                f"Expected at least 2 frames in '{fn}', got {len(images)}. "
+                "Check the file is a valid Walz PAM TIFF export."
+            )
+    elif fn.endswith(".pim"):
+        images = load_pim(fn)
+        if len(images) < 2:
+            raise RuntimeError(
+                f"Expected at least 2 frames in '{fn}', got {len(images)}. "
+                "Check the file is a valid Walz PAM .pim file"
+            )
+    else:
+        print("File format incorrect")
+        return
+    
     Fo_frame = images[0]
     Fm_frame = images[1]
 
-    if warp_M is not None:
-        Fo_frame = cv2.warpAffine(Fo_frame, warp_M, warp_size)
-        Fm_frame = cv2.warpAffine(Fm_frame, warp_M, warp_size)
+    #if warp_M is not None:
+    #    Fo_frame = cv2.warpAffine(Fo_frame, warp_M, warp_size)
+    #    Fm_frame = cv2.warpAffine(Fm_frame, warp_M, warp_size)
+
+    if rotate_angle is not None:
+        Fo_frame = apply_rotation(Fo_frame, rotate_angle)
+        Fm_frame = apply_rotation(Fm_frame, rotate_angle)
 
     if crop_rect is not None:
         x1, y1, x2, y2 = crop_rect
