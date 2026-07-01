@@ -51,6 +51,7 @@ class ImageViewer(QWidget):
         self.setWindowTitle("fvfmPy: Automated Fluorescence Image Processing")
         self.resize(1000, 600)
 
+
         # ---------------- Graphics view ----------------
 
         self.scene = QGraphicsScene()
@@ -61,6 +62,13 @@ class ImageViewer(QWidget):
 
         self.pixmap_item = QGraphicsPixmapItem()
         self.scene.addItem(self.pixmap_item)
+
+        # Monitor events
+        self.view.mouseDoubleClickEvent = self.image_double_clicked
+        self.view.mousePressEvent = self.image_mouse_press
+        self.view.mouseMoveEvent = self.image_mouse_move
+        self.view.mouseReleaseEvent = self.image_mouse_release
+        self.view.setMouseTracking(True)
 
         # Overlay points
         self.points = []
@@ -80,6 +88,8 @@ class ImageViewer(QWidget):
         self.crop_start = None
         self.crop_end = None
         self.crop_mode = False
+
+
         
         # ---------------- Files list --------------
 
@@ -92,27 +102,20 @@ class ImageViewer(QWidget):
         self.list_widget.mousePressEvent = lambda event: None  # Ignores mouse clicks
         self.list_widget.keyPressEvent = lambda event: None    # Ignores arrow keys
 
-        # ---------------- Controls ----------------
 
-        # Monitor events
-        self.view.mouseDoubleClickEvent = self.image_double_clicked
-        self.view.mousePressEvent = self.image_mouse_press
-        self.view.mouseMoveEvent = self.image_mouse_move
-        self.view.mouseReleaseEvent = self.image_mouse_release
-        self.view.setMouseTracking(True)
+        # ---------- File management pane -----
 
-        # Main layouts
-        controls = QVBoxLayout()
+        file_mgmt_pane = QVBoxLayout()
         top_row_layout = QHBoxLayout()
 
         # Widgets
         self.prev_button = QPushButton("<<")
         self.next_button = QPushButton(">>")
         self.analyze_button = QPushButton("Analyze")
-        self.folder_button = QPushButton("Open folder...")
+        self.folder_button = QPushButton("Open folder")
         self.save_button = QPushButton("Save results")
-        self.crop_button = QPushButton("Crop")
-        self.undo_button = QPushButton("Undo crop and rotate")
+
+        self.ROI_number_label = QLabel()
 
         # Connect widgets to methods
         self.prev_button.clicked.connect(self.previous_image)
@@ -120,26 +123,84 @@ class ImageViewer(QWidget):
         self.analyze_button.clicked.connect(self.analyze_image)
         self.folder_button.clicked.connect(self.choose_folder)
         self.save_button.clicked.connect(self.save_results)
+
+
+        top_row_layout.addWidget(self.prev_button)
+        top_row_layout.addWidget(self.next_button)
+        file_mgmt_pane.addWidget(self.analyze_button)
+        file_mgmt_pane.addLayout(top_row_layout)
+        file_mgmt_pane.addWidget(self.folder_button)
+        file_mgmt_pane.addWidget(self.save_button)
+        file_mgmt_pane.addWidget(self.ROI_number_label)
+
+        file_mgmt_pane.addStretch()
+
+        self.analyze_button.setStyleSheet("font-weight: bold;")
+
+        #self.ROI_number_label.setText(" ROIs found: 0")
+        self.ROI_number_label.setStyleSheet("font-size: 14pt; font-weight: bold;")
+
+
+        # ---------- Crop and rotate pane -----
+
+        crop_pane = QVBoxLayout()
+        crop_undo_layout = QHBoxLayout()
+
+        
+        self.crop_button = QPushButton("Crop")
+        self.undo_button = QPushButton("Undo")
+
+        crop_undo_layout.addWidget(self.crop_button)
+        crop_undo_layout.addWidget(self.undo_button)
+
         self.crop_button.clicked.connect(self.start_crop)
         self.undo_button.clicked.connect(self.undo_crop_rotate)
 
-        # First group of buttons
-        top_row_layout.addWidget(self.prev_button)
-        top_row_layout.addWidget(self.next_button)
-        controls.addWidget(self.analyze_button)
-        controls.addLayout(top_row_layout)
-        controls.addWidget(self.folder_button)
-        controls.addWidget(self.save_button)
-        self.analyze_button.setStyleSheet("font-weight: bold;")
+        self.crop_button.setCheckable(True)
 
-        controls.addSpacing(20)
+        self.slider_Rotate = QSlider(Qt.Horizontal)
+        self.slider_Rotate.setRange(-45, 45)
+        self.slider_Rotate.setValue(0)
+        self.slider_Rotate.setTickPosition(QSlider.TickPosition.TicksAbove)
+        self.Rotate_label = QLabel('', self)
+        self.Rotate_layout = QVBoxLayout()
+
+        self.slider_Rotate.valueChanged.connect(self.update_Rotate)
+
+        crop_pane.addWidget(self.Rotate_label)
+        crop_pane.addWidget(self.slider_Rotate)
+        crop_pane.addLayout(crop_undo_layout)
+        #crop_pane.addWidget(self.crop_button)
+        #crop_pane.addWidget(self.undo_button)
+
+
+        # ---------- Rows and cols pane -------
+
+
+        #self.row_col_layout = QHBoxLayout()
+        self.row_input = QLineEdit()
+        self.col_input = QLineEdit()
+        self.rc_cb = QCheckBox("Lock rows and columns", self)
+
+        #controls.addWidget(self.filename_label)
+
+        self.rc_cb.checkStateChanged.connect(self.lock_row_col)
+
+        self.row_col_form = QFormLayout()
+        self.row_col_form.addRow("Rows:", self.row_input)
+        self.row_col_form.addRow("Columns:", self.col_input)
+        self.row_col_form.addRow(self.rc_cb)
+
+        self.Rotate_label.setText(f'Rotation: {self.slider_Rotate.value()} °')
+
+
+
+        # ---------- Sliders pane -------------
+
+
 
         form = QFormLayout()
 
-        line = QFrame()
-        line.setFrameShape(QFrame.Shape.HLine)
-        line.setFrameShadow(QFrame.Shadow.Sunken)
-        line.setStyleSheet("background-color: #c0c0c0;") # Optional: customize color
         
         # Define sliders
         self.slider_ROIsize = QSlider(Qt.Horizontal)
@@ -151,7 +212,7 @@ class ImageViewer(QWidget):
         self.slider_MinArea = QSlider(Qt.Horizontal)
         self.slider_MinArea.setRange(20, 400)
         self.slider_MinArea.setValue(MIN_AREA)
-        self.slider_MinArea.setTickInterval(20)
+        self.slider_MinArea.setTickInterval(40)
         self.slider_MinArea.setTickPosition(QSlider.TickPosition.TicksAbove)
         self.MinArea_label = QLabel('', self)
 
@@ -173,76 +234,59 @@ class ImageViewer(QWidget):
         self.slider_Watershed.setTickPosition(QSlider.TickPosition.TicksAbove)
         self.Watershed_label = QLabel('', self)
 
-        self.slider_Rotate = QSlider(Qt.Horizontal)
-        self.slider_Rotate.setRange(-45, 45)
-        self.slider_Rotate.setValue(0)
-        self.slider_Rotate.setTickPosition(QSlider.TickPosition.TicksAbove)
-        self.Rotate_label = QLabel('', self)
-        
+  
         self.slider_ROIsize.valueChanged.connect(self.update_ROIsize)
         self.slider_MinArea.valueChanged.connect(self.update_MinArea)
         self.slider_GaussBlur.valueChanged.connect(self.update_GaussBlur)
         self.slider_AdaptThresh.valueChanged.connect(self.update_AdaptThresh)
         self.slider_Watershed.valueChanged.connect(self.update_Watershed)
-        self.slider_Rotate.valueChanged.connect(self.update_Rotate)
 
-        self.row_col_layout = QHBoxLayout()
-        self.row_input = QLineEdit()
-        self.col_input = QLineEdit()
-        self.rc_cb = QCheckBox("Lock", self)
-
-        self.rc_cb.checkStateChanged.connect(self.lock_row_col)
-
-        self.row_col_form = QFormLayout()
-        self.row_col_form.addRow("Row:", self.row_input)
-        self.row_col_form.addRow("Col:", self.col_input)
-        self.row_col_form.addRow(self.rc_cb)
 
         # User parameter adjustments
         form.addRow(self.ROIsize_label)
-        form.addRow("ROI size", self.slider_ROIsize)
-        #form.addRow(line)
+        form.addRow("", self.slider_ROIsize)
+        self.ROIsize_label.setText(f'ROI size: {self.slider_ROIsize.value()} px')
+
         form.addRow(self.MinArea_label)
-        form.addRow("Min area", self.slider_MinArea)
-        #form.addRow(line)
+        form.addRow("", self.slider_MinArea)
+        self.MinArea_label.setText(f'Minimum area: {self.slider_MinArea.value()} px')
+
         form.addRow(self.GaussBlur_label)
-        form.addRow("Gauss", self.slider_GaussBlur)
+        form.addRow("", self.slider_GaussBlur)
+        self.GaussBlur_label.setText(f'Gaussian blur: {1+2*self.slider_GaussBlur.value()} px')
 
         form.addRow(self.AdaptThresh_label)
-        form.addRow("Adapt", self.slider_AdaptThresh)
+        form.addRow("", self.slider_AdaptThresh)
+        self.AdaptThresh_label.setText(f'Adaptive threshold size: {1+2*self.slider_AdaptThresh.value()} px')
 
         form.addRow(self.Watershed_label)
-        form.addRow("Wshed", self.slider_Watershed)
+        form.addRow("", self.slider_Watershed)
+        self.Watershed_label.setText(f'Watershed segmentation size: {self.slider_Watershed.value()} px')
 
 
-        controls.addLayout(form)
-
-        controls.addSpacing(20)
-
-        controls.addWidget(self.crop_button)
-        controls.addWidget(self.undo_button)
-        form.addRow(self.Rotate_label)
-        form.addRow("Rotate.", self.slider_Rotate)
-
-        controls.addLayout(self.row_col_form )
-
-        controls.addSpacing(20)
-
-        self.no_ROIs = QLabel()
-        controls.addWidget(self.no_ROIs)
-
-        controls.addStretch()
-
-        self.filename_label = QLabel()
-        controls.addWidget(self.filename_label)
 
         # ---------------- Main layout ----------------
 
         layout = QHBoxLayout(self)
 
-        layout.addWidget(self.view, stretch=5)
-        layout.addWidget(self.list_widget, stretch=1)
-        layout.addLayout(controls, stretch=1)
+        main_layout_row_1 = QHBoxLayout(self)
+        main_layout_row_1.addWidget(self.list_widget)
+        main_layout_row_1.addLayout(file_mgmt_pane)
+
+        main_layout_row_2 = QHBoxLayout(self)
+        main_layout_row_2.addLayout(self.row_col_form)
+        main_layout_row_2.addLayout(crop_pane)
+
+        main_layout_controls = QVBoxLayout(self)
+        main_layout_controls.addLayout(main_layout_row_1)
+        main_layout_controls.addSpacing(30)
+        main_layout_controls.addLayout(main_layout_row_2)
+        main_layout_controls.addSpacing(30)
+        main_layout_controls.addLayout(form)
+        main_layout_controls.addStretch()
+
+        layout.addWidget(self.view, stretch=10)
+        layout.addLayout(main_layout_controls, stretch = 4)
 
         self.refresh_image_folder(image_folder)
 
@@ -251,12 +295,19 @@ class ImageViewer(QWidget):
             self.load_image(0)
 
 
-
     ### METHODS ###
 
     def start_crop(self):
+
+        button_state = self.crop_button.isChecked()
+
         self.crop_start = None
-        self.crop_mode = True
+
+        if button_state == True:
+            self.crop_mode = True
+        else:
+            self.crop_mode = False
+
 
     def image_mouse_press(self, event):
         
@@ -288,6 +339,7 @@ class ImageViewer(QWidget):
         self.crop_end = self.view.mapToScene(event.position().toPoint())
 
         self.crop_mode = False
+        self.crop_button.setChecked(False)
 
         crop = self.get_crop()
         #print(crop)
@@ -399,7 +451,9 @@ class ImageViewer(QWidget):
 
         self.view.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
 
-        self.filename_label.setText(self.image_paths[index].name)
+        self.ROI_number_label.setText(f" ROIs found: {len(roi_list)}")
+
+        #self.filename_label.setText(self.image_paths[index].name)
 
     def add_point(self, x, y, row,col):
 
@@ -541,27 +595,27 @@ class ImageViewer(QWidget):
 
 
     def update_ROIsize(self):
-        self.ROIsize_label.setText(f'ROI: {self.slider_ROIsize.value()}')
+        self.ROIsize_label.setText(f'ROI size: {self.slider_ROIsize.value()} px')
         self.load_image(self.current_index)
 
     def update_MinArea(self):
-        self.MinArea_label.setText(f'Min A: {self.slider_MinArea.value()}')
+        self.MinArea_label.setText(f'Minimum area: {self.slider_MinArea.value()} px')
         self.load_image(self.current_index)
 
     def update_GaussBlur(self):
-        self.GaussBlur_label.setText(f'Gauss: {1+2*self.slider_GaussBlur.value()}')
+        self.GaussBlur_label.setText(f'Gaussian blur: {1+2*self.slider_GaussBlur.value()} px')
         self.load_image(self.current_index)
 
     def update_AdaptThresh(self):
-        self.AdaptThresh_label.setText(f'Adapt: {1+2*self.slider_AdaptThresh.value()}')
+        self.AdaptThresh_label.setText(f'Adaptive threshold size: {1+2*self.slider_AdaptThresh.value()} px')
         self.load_image(self.current_index)
 
     def update_Watershed(self):
-        self.Watershed_label.setText(f'Adapt: {self.slider_Watershed.value()}')
+        self.Watershed_label.setText(f'Watershed segmentation size: {self.slider_Watershed.value()} px')
         self.load_image(self.current_index)
 
     def update_Rotate(self):
-        self.Rotate_label.setText(f'Rotation: {self.slider_Rotate.value()}')
+        self.Rotate_label.setText(f'Rotation: {self.slider_Rotate.value()} °')
         self.load_image(self.current_index)
 
     def lock_row_col(self):
@@ -580,6 +634,7 @@ class ImageViewer(QWidget):
         self.crop_button.setEnabled(True)
         self.slider_Rotate.setEnabled(True)
         self.crop_coordinates = None
+        self.crop_start = None
         self.slider_Rotate.setValue(0)
         self.load_image(self.current_index)
 
