@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QGraphicsRectItem,
     QGraphicsTextItem,
+    QGraphicsSimpleTextItem,
     QGraphicsPixmapItem,
     QGraphicsScene,
     QGraphicsView,
@@ -31,18 +32,19 @@ from PySide6.QtWidgets import (
 
 from load_tif_img import load_tif_img, numpy_to_pixmap
 from get_candidate_rois import detect_centroids, assign_rois_to_grid
-from guess_grid_dims import estimate_grid_dims, confirm_grid_dims, _focus_terminal
+from guess_grid_dims import estimate_grid_dims 
 from analyze_image_GUI import analyze_ROIs
-from convert_pim_to_tif import load_pim, load_pim_grayscale
+from convert_pim_to_tif import load_pim_grayscale
 from perspective_corrector import apply_rotation
 
 IMAGE_EXTENSIONS = {".tif", ".tiff", ".pim"}
 
-ROI_SIZE = 15         # side length of square ROI (pixels)
+# Default parameter values
+ROI_SIZE = 10         # side length of square ROI (pixels)
 MIN_AREA = 200        # minimum area of a leaf disc to keep
 GAUSSIAN_BLUR = 3     # blur kernel to smooth thresholding
 ADAPTIVE_THRESH_VAL = 101 # Neighbourhood size for adaptive thresholding
-WATERSHED_THRESH = 30 # Watershed thresholding size
+WATERSHED_THRESH = 32 # Watershed thresholding size
 
 
 class ImageViewer(QWidget):
@@ -52,9 +54,7 @@ class ImageViewer(QWidget):
         self.setWindowTitle("fvfmPy: Automated Fluorescence Image Processing")
         self.resize(1000, 600)
 
-
         # ---------------- Graphics view ----------------
-
         self.scene = QGraphicsScene()
 
         self.view = QGraphicsView(self.scene)
@@ -76,7 +76,6 @@ class ImageViewer(QWidget):
         self.rois = []
         self.crop_coordinates = None
         self.current_image = None
-        self.current_centroids = None
         self.current_results = None
 
         # Cropper
@@ -89,11 +88,8 @@ class ImageViewer(QWidget):
         self.crop_start = None
         self.crop_end = None
         self.crop_mode = False
-
-
         
         # ---------------- Files list --------------
-
         self.list_widget = QListWidget()
         self.list_widget.setWindowTitle("Files:")
         self.list_widget.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -103,9 +99,7 @@ class ImageViewer(QWidget):
         self.list_widget.mousePressEvent = lambda event: None  # Ignores mouse clicks
         self.list_widget.keyPressEvent = lambda event: None    # Ignores arrow keys
 
-
         # ---------- File management pane -----
-
         file_mgmt_pane = QVBoxLayout()
         top_row_layout = QHBoxLayout()
 
@@ -117,6 +111,7 @@ class ImageViewer(QWidget):
         self.save_button = QPushButton("Save results")
 
         self.ROI_number_label = QLabel()
+        self.obs_label = QLabel()
 
         # Connect widgets to methods
         self.prev_button.clicked.connect(self.previous_image)
@@ -125,7 +120,6 @@ class ImageViewer(QWidget):
         self.folder_button.clicked.connect(self.choose_folder)
         self.save_button.clicked.connect(self.save_results)
 
-
         top_row_layout.addWidget(self.prev_button)
         top_row_layout.addWidget(self.next_button)
         file_mgmt_pane.addWidget(self.analyze_button)
@@ -133,20 +127,18 @@ class ImageViewer(QWidget):
         file_mgmt_pane.addWidget(self.folder_button)
         file_mgmt_pane.addWidget(self.save_button)
         file_mgmt_pane.addWidget(self.ROI_number_label)
-
+        file_mgmt_pane.addWidget(self.obs_label)
         file_mgmt_pane.addStretch()
 
         self.analyze_button.setStyleSheet("font-weight: bold;")
-
-        #self.ROI_number_label.setText(" ROIs found: 0")
-        self.ROI_number_label.setStyleSheet("font-size: 14pt; font-weight: bold;")
-
+        self.ROI_number_label.setText(" ROIs found: 0")
+        self.ROI_number_label.setStyleSheet("font-size: 12pt; font-weight: bold;")
+        self.obs_label.setText(" Obs. logged: 0")
+        self.obs_label.setStyleSheet("font-size: 12pt;")
 
         # ---------- Crop and rotate pane -----
-
         crop_pane = QVBoxLayout()
         crop_undo_layout = QHBoxLayout()
-
         
         self.crop_button = QPushButton("Crop")
         self.undo_button = QPushButton("Undo")
@@ -171,21 +163,15 @@ class ImageViewer(QWidget):
         crop_pane.addWidget(self.Rotate_label)
         crop_pane.addWidget(self.slider_Rotate)
         crop_pane.addLayout(crop_undo_layout)
-        #crop_pane.addWidget(self.crop_button)
-        #crop_pane.addWidget(self.undo_button)
-
 
         # ---------- Rows and cols pane -------
-
-
-        #self.row_col_layout = QHBoxLayout()
         self.row_input = QLineEdit()
         self.col_input = QLineEdit()
         self.rc_cb = QCheckBox("Lock rows and columns", self)
 
-        #controls.addWidget(self.filename_label)
-
         self.rc_cb.checkStateChanged.connect(self.lock_row_col)
+        self.row_input.editingFinished.connect(self.change_row_number)
+        self.col_input.editingFinished.connect(self.change_col_number)
 
         self.row_col_form = QFormLayout()
         self.row_col_form.addRow("Rows:", self.row_input)
@@ -194,15 +180,9 @@ class ImageViewer(QWidget):
 
         self.Rotate_label.setText(f'Rotation: {self.slider_Rotate.value()} °')
 
-
-
         # ---------- Sliders pane -------------
-
-
-
         form = QFormLayout()
-
-        
+ 
         # Define sliders
         self.slider_ROIsize = QSlider(Qt.Horizontal)
         self.slider_ROIsize.setRange(2, 40)
@@ -235,13 +215,11 @@ class ImageViewer(QWidget):
         self.slider_Watershed.setTickPosition(QSlider.TickPosition.TicksAbove)
         self.Watershed_label = QLabel('', self)
 
-  
         self.slider_ROIsize.valueChanged.connect(self.update_ROIsize)
         self.slider_MinArea.valueChanged.connect(self.update_MinArea)
         self.slider_GaussBlur.valueChanged.connect(self.update_GaussBlur)
         self.slider_AdaptThresh.valueChanged.connect(self.update_AdaptThresh)
         self.slider_Watershed.valueChanged.connect(self.update_Watershed)
-
 
         # User parameter adjustments
         form.addRow(self.ROIsize_label)
@@ -264,24 +242,21 @@ class ImageViewer(QWidget):
         form.addRow("", self.slider_Watershed)
         self.Watershed_label.setText(f'Watershed segmentation size: {self.slider_Watershed.value()} px')
 
-
-
         # ---------------- Main layout ----------------
-
         layout = QHBoxLayout(self)
-
-        main_layout_row_1 = QHBoxLayout(self)
+        main_layout_row_1 = QHBoxLayout()
         main_layout_row_1.addWidget(self.list_widget)
         main_layout_row_1.addLayout(file_mgmt_pane)
 
-        main_layout_row_2 = QHBoxLayout(self)
+        main_layout_row_2 = QHBoxLayout()
         main_layout_row_2.addLayout(self.row_col_form)
         main_layout_row_2.addLayout(crop_pane)
 
-        main_layout_controls = QVBoxLayout(self)
+        main_layout_controls = QVBoxLayout()
         main_layout_controls.addLayout(main_layout_row_1)
         main_layout_controls.addSpacing(30)
         main_layout_controls.addLayout(main_layout_row_2)
+
         main_layout_controls.addSpacing(30)
         main_layout_controls.addLayout(form)
         main_layout_controls.addStretch()
@@ -291,17 +266,13 @@ class ImageViewer(QWidget):
 
         self.refresh_image_folder(image_folder)
 
-
         if self.image_paths:
             self.load_image(0)
-
 
     ### METHODS ###
 
     def start_crop(self):
-
         button_state = self.crop_button.isChecked()
-
         self.crop_start = None
 
         if button_state == True:
@@ -343,7 +314,6 @@ class ImageViewer(QWidget):
         self.crop_button.setChecked(False)
 
         crop = self.get_crop()
-        #print(crop)
         self.crop_coordinates = crop
         self.load_image(self.current_index)
         self.crop_rect.hide()
@@ -361,7 +331,6 @@ class ImageViewer(QWidget):
         y2 = int(rect.bottom())
 
         return (
-            #self.image[y1:y2, x1:x2].copy(),
             (x1, y1, x2, y2)
         )
 
@@ -374,12 +343,11 @@ class ImageViewer(QWidget):
         self.current_index = 0
 
         # Populate the model with initial string data
-        self.initial_data = [PurePath(p).name for p in self.image_paths] #["Apple", "Banana", "Cherry", "Date"]
-        #self.files_list_model.setStringList(self.initial_data)
+        self.list_widget.clear()
+        self.initial_data = [PurePath(p).name for p in self.image_paths]
         for task in self.initial_data:
             item = QListWidgetItem(task)
             # Initialize our custom "completed" state tracking metadata as False
-            #item.setData(Qt.ItemDataRole.UserRole, False)
             self.list_widget.addItem(item)
 
 
@@ -425,9 +393,6 @@ class ImageViewer(QWidget):
 
         # Generate ROIs
         centroid_dicts = detect_centroids(new_img, ROIsize, MinArea, 1+2*GaussBlur, 1+2*AdaptThresh, Watershed)
-        
-        self.current_centroids = centroid_dicts
-        #print(centroid_dicts)
         centroids_xy = [(d["cx"], d["cy"]) for d in centroid_dicts]
 
         # If needed, estimate grid dimensions
@@ -441,7 +406,6 @@ class ImageViewer(QWidget):
             self.col_input.setText(str(est_cols))
         
         # Assign centroids to confirmed grid
-        #roi_list = assign_rois_to_grid(new_img, centroid_dicts, est_rows, est_cols, ROIsize)
         roi_list = assign_rois_to_grid(img=None, centroid_dicts=centroid_dicts, expected_rows=est_rows, expected_cols=est_cols, ROI_SIZE=ROIsize, locked=True)
         self.rois = roi_list
         
@@ -456,28 +420,38 @@ class ImageViewer(QWidget):
 
         self.ROI_number_label.setText(f" ROIs found: {len(roi_list)}")
 
-        #self.filename_label.setText(self.image_paths[index].name)
 
     def add_point(self, x, y, row,col):
 
         ROIsize = self.slider_ROIsize.value()
 
         point = QGraphicsRectItem(-ROIsize/2, -ROIsize/2, ROIsize, ROIsize)
-        label_text = QGraphicsTextItem(f'{row}, {col}', point)
-
-        label_text.setDefaultTextColor(QColor("white"))
+        label_text = QGraphicsSimpleTextItem(f'{row}, {col}', point)
+        label_text.setBrush(Qt.white)
         label_text.setPos(0, 0) 
+
+        point.setZValue(0)
+        label_text.setZValue(1)
+
+        #print(label_text.boundingRect())
 
         point.setPen(QPen(Qt.blue,2))
         point.setBrush(Qt.BrushStyle.NoBrush)
 
         point.setPos(x, y)
 
-        self.scene.addItem(point)
-        self.scene.addItem(label_text)
-        self.points.append(point)
+        #print(label_text.parentItem())
+        #print(label_text.scene())
 
-        # 
+        self.scene.addItem(point)
+        #point.update()
+        self.scene.update()
+        #_ = label_text.scene()
+        #print(label_text.parentItem())
+        #print(label_text.scene())
+        #label_text.update()
+        #self.scene.addItem(label_text)
+        self.points.append(point)
 
     def clear_points(self):
         for point in self.points:
@@ -486,9 +460,6 @@ class ImageViewer(QWidget):
         self.points.clear()
 
     def image_double_clicked(self, event):
-
-
-        #print(centroids)
 
         scene_pos = self.view.mapToScene(event.position().toPoint())
 
@@ -504,39 +475,20 @@ class ImageViewer(QWidget):
 
         if removed_pt == False:
             # Otherwise add one
-            #print("helol")
-            #self.points.append(scene_pos)
             self.add_point(scene_pos.x(), scene_pos.y(),0,0)
-
-        
 
         centroids = []
         for p in self.points:
             cx = p.scenePos().x()
             cy = p.scenePos().y()
-            #area = 100
             centroids.append({"cx": cx, "cy": cy, "area": 100})
-        #print(centroids)
-        # centroids_xy = [(d["cx"], d["cy"]) for d in centroids]
 
-        # # If needed, estimate grid dimensions
-        # rc_locked = self.rc_cb.isChecked()
-        # if rc_locked == True:
         est_rows = int(self.row_input.text())
         est_cols = int(self.col_input.text())
-        # else:
-        #     est_rows, est_cols = estimate_grid_dims(centroids_xy)
-        #     self.row_input.setText(str(est_rows))
-        #     self.col_input.setText(str(est_cols))
-        
-        # cur_img = self.current_image
         ROIsize = self.slider_ROIsize.value()
-
-        #print(est_cols, est_rows, ROIsize)
 
         # # Assign centroids to confirmed grid
         roi_list = assign_rois_to_grid(img=None, centroid_dicts=centroids, expected_rows=est_rows, expected_cols=est_cols, ROI_SIZE=ROIsize, locked=True)
-        #print(roi_list)
         self.rois = roi_list
 
         self.ROI_number_label.setText(f" ROIs found: {len(roi_list)}")
@@ -548,8 +500,6 @@ class ImageViewer(QWidget):
             row = roi_list[j]['row']
             col = roi_list[j]['col']
             self.add_point(x,y,row,col)
-        
-
 
     def next_image(self):
         if not self.image_paths:
@@ -571,6 +521,12 @@ class ImageViewer(QWidget):
 
     def analyze_image(self):
 
+        results = self.current_results
+        fns_list = None
+        if results != None:
+            fns_list = [r['filename'] for r in results]
+            #print(fns_list)
+
         # Get ROI list
         roi_list = self.rois
         index = self.current_index
@@ -578,6 +534,24 @@ class ImageViewer(QWidget):
 
         # Send list of ROIs to FvFm grabber
         filename = str(self.image_paths[index])
+        fn_short = PurePath(filename).name
+        #print(fn_short)
+
+
+        # TODO:: Make this overwrite
+        if fns_list != None:
+            if fn_short in fns_list:
+                reply = QMessageBox.question(
+                    self, 
+                    'Image previously analyzed', 
+                    f"File {fn_short} has already been analyzed. This action will overwrite previous data for this file.",
+                    QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel, 
+                    QMessageBox.StandardButton.Cancel
+                )
+
+                # Check user choice
+                if reply == QMessageBox.StandardButton.Cancel:
+                    return
 
         res = analyze_ROIs(filename, roi_list, ROIsize,  
                            rotate_angle=self.slider_Rotate.value(),
@@ -588,7 +562,8 @@ class ImageViewer(QWidget):
             self.current_results = res
         else:
             self.current_results.extend(res)
-        print(self.current_results)
+
+        self.obs_label.setText(f" Obs. logged: {len(self.current_results)}")
 
         self.toggle_completion()
 
@@ -596,13 +571,28 @@ class ImageViewer(QWidget):
 
 
     def choose_folder(self):
+
+        if self.current_results != None:
+            reply = QMessageBox.question(
+                self, 
+                'Open new folder', 
+                'Opening a new folder will clear logged observations. Do you wish to continue?',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, 
+                QMessageBox.StandardButton.No
+            )
+
+            # Check user choice
+            if reply == QMessageBox.StandardButton.No:
+                return
+
         dialog = QFileDialog(self)
         dialog.setFileMode(QFileDialog.Directory)
         if dialog.exec():
             fileNames = dialog.selectedFiles()
             self.refresh_image_folder(fileNames[0])
             self.load_image(0)
-
+            self.current_results = None
+            self.obs_label.setText(" Obs. logged: 0")
 
     def update_ROIsize(self):
         self.ROIsize_label.setText(f'ROI size: {self.slider_ROIsize.value()} px')
@@ -638,7 +628,6 @@ class ImageViewer(QWidget):
             self.col_input.setEnabled(True)
             self.row_input.setEnabled(True)
 
-
     # Undo and reset cropping and rotating for current image
     def undo_crop_rotate(self):
         self.crop_button.setEnabled(True)
@@ -647,6 +636,33 @@ class ImageViewer(QWidget):
         self.crop_start = None
         self.slider_Rotate.setValue(0)
         self.load_image(self.current_index)
+
+    def change_row_number(self):
+        new_row = self.row_input.text()
+        try:
+            new_row = int(new_row)
+            # Assign to grid
+        except ValueError:
+            msg = QMessageBox()
+            msg.setWindowTitle("Warning")
+            msg.setText("Row number must be an integer.")
+            msg.setStandardButtons(QMessageBox.StandardButton.Ok)  # Only an OK button
+            msg.exec()
+            self.row_input.undo()
+
+    def change_col_number(self):
+        new_col = self.col_input.text()
+        try:
+            new_col = int(new_col)
+            # Assign to grid
+        except ValueError:
+            msg = QMessageBox()
+            msg.setWindowTitle("Warning")
+            msg.setText("Column number must be an integer.")
+            msg.setStandardButtons(QMessageBox.StandardButton.Ok)  # Only an OK button
+            msg.exec()
+            self.col_input.undo()
+
 
     # Make text bold for current item in files list
     def toggle_completion(self):
@@ -671,6 +687,20 @@ class ImageViewer(QWidget):
 
         df = pandas.DataFrame(results)
         df.to_csv(fn, index=False)
+
+        reply = QMessageBox.question(
+            self, 
+            'Clear logs', 
+            'Clear logged observations?',
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, 
+            QMessageBox.StandardButton.No
+        )
+
+        # Check user choice
+        if reply == QMessageBox.StandardButton.Yes:
+            self.current_results = None
+            self.obs_label.setText(" Obs. logged: 0")
+
 
     # Override the closeEvent method
     def closeEvent(self, event):

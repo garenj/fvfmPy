@@ -66,7 +66,7 @@ def analyze_ROIs(fn, rois, ROIsize, rotate_angle = None, #warp_M=None, warp_size
     half = ROIsize/2
 
     expected_cols = max([d['col'] for d in rois])
-    print(expected_cols)
+    #print(expected_cols)
 
     #for cur_ass in assignments:
     for roi in rois:

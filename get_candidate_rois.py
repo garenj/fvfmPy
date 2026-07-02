@@ -52,14 +52,14 @@ def detect_centroids(img,
     adaptive_thresh_image = cv2.adaptiveThreshold(blur, 255,
                                               cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                               cv2.THRESH_BINARY, ADAPTIVE_THRESH_VAL, 2)
-    cv2.imwrite("AdaptThresh.png",adaptive_thresh_image)
+    #cv2.imwrite("AdaptThresh.png",adaptive_thresh_image)
     binary = adaptive_thresh_image
     binary_clean = morphology.remove_small_objects(binary, min_size=MIN_AREA)
-    cv2.imwrite("MinArea.png",binary_clean)
+    #cv2.imwrite("MinArea.png",binary_clean)
 
 
     distance = distance_transform_edt(binary_clean)
-    cv2.imwrite("Watershed.png",distance)
+    #cv2.imwrite("Watershed.png",distance)
 
 
     coords = peak_local_max(distance,
