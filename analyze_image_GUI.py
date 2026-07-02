@@ -6,8 +6,8 @@ from convert_pim_to_tif import load_pim
 from perspective_corrector import apply_rotation
 
 
-def analyze_ROIs(fn, rois, ROIsize, expected_cols, rotate_angle = None, #warp_M=None, warp_size=None, 
-                 crop_rect=None, output_dir=None):
+def analyze_ROIs(fn, rois, ROIsize, rotate_angle = None, #warp_M=None, warp_size=None, 
+                 crop_rect=None):
 
     images = []
 
@@ -65,6 +65,9 @@ def analyze_ROIs(fn, rois, ROIsize, expected_cols, rotate_angle = None, #warp_M=
 
     half = ROIsize/2
 
+    expected_cols = max([d['col'] for d in rois])
+    print(expected_cols)
+
     #for cur_ass in assignments:
     for roi in rois:
         cx, cy = roi['centroid']
@@ -87,6 +90,8 @@ def analyze_ROIs(fn, rois, ROIsize, expected_cols, rotate_angle = None, #warp_M=
 
         # Guard against dead/unlit discs where Fm ≈ 0
         FvFm = (mean_Fm_cur - mean_Fo_cur) / mean_Fm_cur if mean_Fm_cur > 0 else float('nan')
+
+        
 
         leaf_number = (int(row)-1) * expected_cols + int(col)
         results.append({

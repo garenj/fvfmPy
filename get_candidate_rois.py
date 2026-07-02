@@ -89,7 +89,7 @@ def detect_centroids(img,
     return centroids
 
 
-def assign_rois_to_grid(img, centroid_dicts, expected_rows, expected_cols, ROI_SIZE = 20):
+def assign_rois_to_grid(img, centroid_dicts, expected_rows, expected_cols, ROI_SIZE = 20, locked = False):
     """
     Assign detected centroids to a rows x cols grid via PCA rotation and
     nearest-band matching. Returns roi list compatible with the pipeline.
@@ -117,36 +117,72 @@ def assign_rois_to_grid(img, centroid_dicts, expected_rows, expected_cols, ROI_S
 
     grid_regions = {}
     median_area = np.median(areas)
+    # print(assignments)
 
-    for r in range(expected_rows):
-        for c in range(expected_cols):
-            cell = (r, c)
-            if cell in assignments:
-                idxs = assignments[cell]
-                if len(idxs) > 1:
-                    idx = min(idxs, key=lambda i: abs(areas[i] - median_area))
-                else:
-                    idx = idxs[0]
-                grid_regions[cell] = idx
+    if locked:
+        grid_regions = assignments
+    else:
+        grid_regions = {}
+        for cell, idxs in assignments.items():
+            if len(idxs) == 1:
+                grid_regions[cell] = idxs
+            else:
+                best = min(idxs, key=lambda i: abs(areas[i] - median_area))
+                grid_regions[cell] = [best]
+
+    # if locked == False:
+    #     for r in range(expected_rows):
+    #         for c in range(expected_cols):
+    #             cell = (r, c)
+    #             if cell in assignments:
+    #                 idxs = assignments[cell]
+    #                 if len(idxs) > 1:
+    #                     idx = min(idxs, key=lambda i: abs(areas[i] - median_area))
+    #                 else:
+    #                     idx = idxs[0]
+    #                 grid_regions[cell] = idx
+    # else:
+    #     grid_regions = assignments
+
+    # print(grid_regions)
 
     results = []
     half = ROI_SIZE // 2
 
-    for (row, col), idx in grid_regions.items():
-        cx = centroid_dicts[idx]["cx"]
-        cy = centroid_dicts[idx]["cy"]
+    for (row, col), idxs in grid_regions.items():
+        for idx in idxs:
+            cx = centroid_dicts[idx]["cx"]
+            cy = centroid_dicts[idx]["cy"]
 
-        x1, x2 = int(cx - half), int(cx + half)
-        y1, y2 = int(cy - half), int(cy + half)
-        x1, x2 = max(0, x1), min(img.shape[1], x2)
-        y1, y2 = max(0, y1), min(img.shape[0], y2)
+            results.append({
+                "row": row,
+                "col": col,
+                "centroid": (cx, cy)
+            })
 
-        results.append({
-            "row": row,
-            "col": col,
-            "centroid": (cx, cy),
-            "mean_intensity": img[y1:y2, x1:x2].mean()
-        })
+    # for (row, col), idx in grid_regions.items():
+
+    #     if type(idx) == int:
+    #         cx = centroid_dicts[idx]["cx"]
+    #         cy = centroid_dicts[idx]["cy"]
+    #     elif len(idx) == 1:
+    #         idx_cur = idx[0]
+    #         cx = centroid_dicts[idx_cur]["cx"]
+    #         cy = centroid_dicts[idx_cur]["cy"]
+    #     else:
+    #         print("crub")
+
+    #     #x1, x2 = int(cx - half), int(cx + half)
+    #     #y1, y2 = int(cy - half), int(cy + half)
+    #     #x1, x2 = max(0, x1), min(img.shape[1], x2)
+    #     #y1, y2 = max(0, y1), min(img.shape[0], y2)
+
+    #     results.append({
+    #         "row": row,
+    #         "col": col,
+    #         "centroid": (cx, cy)#,
+    #         #"mean_intensity": img[y1:y2, x1:x2].mean()
+    #     })
 
     # Check row and column assignments; we want the numbering to start in the top left
     first_row_y = []

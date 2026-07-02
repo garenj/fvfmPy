@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QListView,
     QAbstractItemView,
     QFrame,
+    QMessageBox,
     QListWidget, QListWidgetItem
 )
 
@@ -424,6 +425,7 @@ class ImageViewer(QWidget):
 
         # Generate ROIs
         centroid_dicts = detect_centroids(new_img, ROIsize, MinArea, 1+2*GaussBlur, 1+2*AdaptThresh, Watershed)
+        
         self.current_centroids = centroid_dicts
         #print(centroid_dicts)
         centroids_xy = [(d["cx"], d["cy"]) for d in centroid_dicts]
@@ -439,7 +441,8 @@ class ImageViewer(QWidget):
             self.col_input.setText(str(est_cols))
         
         # Assign centroids to confirmed grid
-        roi_list = assign_rois_to_grid(new_img, centroid_dicts, est_rows, est_cols, ROIsize)
+        #roi_list = assign_rois_to_grid(new_img, centroid_dicts, est_rows, est_cols, ROIsize)
+        roi_list = assign_rois_to_grid(img=None, centroid_dicts=centroid_dicts, expected_rows=est_rows, expected_cols=est_cols, ROI_SIZE=ROIsize, locked=True)
         self.rois = roi_list
         
         # Run through list of ROIs and add each as overlay point on display
@@ -497,13 +500,15 @@ class ImageViewer(QWidget):
             if item in self.points:
                 self.scene.removeItem(item)
                 self.points.remove(item)
-                #removed_pt = True
+                removed_pt = True
 
         if removed_pt == False:
             # Otherwise add one
-            print("helol")
+            #print("helol")
             #self.points.append(scene_pos)
-            self.add_point(scene_pos.x(), scene_pos.y(),1,1)
+            self.add_point(scene_pos.x(), scene_pos.y(),0,0)
+
+        
 
         centroids = []
         for p in self.points:
@@ -511,25 +516,30 @@ class ImageViewer(QWidget):
             cy = p.scenePos().y()
             #area = 100
             centroids.append({"cx": cx, "cy": cy, "area": 100})
+        #print(centroids)
+        # centroids_xy = [(d["cx"], d["cy"]) for d in centroids]
 
-        centroids_xy = [(d["cx"], d["cy"]) for d in centroids]
-
-        # If needed, estimate grid dimensions
-        rc_locked = self.rc_cb.isChecked()
-        if rc_locked == True:
-            est_rows = self.row_input.text()
-            est_cols = self.col_input.text()
-        else:
-            est_rows, est_cols = estimate_grid_dims(centroids_xy)
-            self.row_input.setText(str(est_rows))
-            self.col_input.setText(str(est_cols))
+        # # If needed, estimate grid dimensions
+        # rc_locked = self.rc_cb.isChecked()
+        # if rc_locked == True:
+        est_rows = int(self.row_input.text())
+        est_cols = int(self.col_input.text())
+        # else:
+        #     est_rows, est_cols = estimate_grid_dims(centroids_xy)
+        #     self.row_input.setText(str(est_rows))
+        #     self.col_input.setText(str(est_cols))
         
-        cur_img = self.current_image
+        # cur_img = self.current_image
         ROIsize = self.slider_ROIsize.value()
 
-        # Assign centroids to confirmed grid
-        roi_list = assign_rois_to_grid(cur_img, centroids, est_rows, est_cols, ROIsize)
+        #print(est_cols, est_rows, ROIsize)
+
+        # # Assign centroids to confirmed grid
+        roi_list = assign_rois_to_grid(img=None, centroid_dicts=centroids, expected_rows=est_rows, expected_cols=est_cols, ROI_SIZE=ROIsize, locked=True)
+        #print(roi_list)
         self.rois = roi_list
+
+        self.ROI_number_label.setText(f" ROIs found: {len(roi_list)}")
         
         self.clear_points()
         # Run through list of ROIs and add each as overlay point on display
@@ -569,7 +579,7 @@ class ImageViewer(QWidget):
         # Send list of ROIs to FvFm grabber
         filename = str(self.image_paths[index])
 
-        res = analyze_ROIs(filename, roi_list, ROIsize, expected_cols=9, 
+        res = analyze_ROIs(filename, roi_list, ROIsize,  
                            rotate_angle=self.slider_Rotate.value(),
                            crop_rect=self.crop_coordinates)
         
@@ -654,10 +664,37 @@ class ImageViewer(QWidget):
                                         "Comma-separated value files (*.csv)"
                                     )
         
+        if fn == "":
+            return
+
         results = self.current_results
 
         df = pandas.DataFrame(results)
         df.to_csv(fn, index=False)
+
+    # Override the closeEvent method
+    def closeEvent(self, event):
+        # Create a message box
+        if self.current_results == None:
+            event.accept()
+            return
+
+        reply = QMessageBox.question(
+            self, 
+            'Exit Confirmation', 
+            'Do you wish to save your data before you quit?',
+            QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel, 
+            QMessageBox.StandardButton.Cancel
+        )
+
+        # Check user choice
+        if reply == QMessageBox.StandardButton.Discard:
+            event.accept() # Allow the window to close
+        elif reply == QMessageBox.StandardButton.Save:
+            self.save_results()
+            event.accept()
+        else:
+            event.ignore() # Cancel the close event
 
 
 if __name__ == "__main__":
