@@ -107,6 +107,8 @@ def analyze_ROIs(fn, rois, ROIsize, rotate_angle = None, #warp_M=None, warp_size
         })
 
     results.sort(key=lambda x: x["leaf_number"])
+
+    print(f"  [analyze ROIs] {len(rois)} measurements logged from file {PurePath(fn).name}")
     #results = dict(sorted(results.items(), key=lambda item: item[1]['leaf_number']))
 
     # if fn.endswith('.tif'):

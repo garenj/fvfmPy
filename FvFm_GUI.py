@@ -477,14 +477,28 @@ class ImageViewer(QWidget):
             # Otherwise add one
             self.add_point(scene_pos.x(), scene_pos.y(),0,0)
 
+
+        #######
+        #######
         centroids = []
         for p in self.points:
             cx = p.scenePos().x()
             cy = p.scenePos().y()
             centroids.append({"cx": cx, "cy": cy, "area": 100})
 
-        est_rows = int(self.row_input.text())
-        est_cols = int(self.col_input.text())
+        #est_rows = int(self.row_input.text())
+        #est_cols = int(self.col_input.text())
+
+        # If needed, estimate grid dimensions
+        rc_locked = self.rc_cb.isChecked()
+        if rc_locked == True:
+            est_rows = int(self.row_input.text())
+            est_cols = int(self.col_input.text())
+        else:
+            centroids_xy = [(d["cx"], d["cy"]) for d in centroids]
+            est_rows, est_cols = estimate_grid_dims(centroids_xy)
+            self.row_input.setText(str(est_rows))
+            self.col_input.setText(str(est_cols))
         ROIsize = self.slider_ROIsize.value()
 
         # # Assign centroids to confirmed grid
@@ -552,6 +566,11 @@ class ImageViewer(QWidget):
                 # Check user choice
                 if reply == QMessageBox.StandardButton.Cancel:
                     return
+                
+                # If they clicked OK, then we need to remove all the entries in current_results with the current filename
+                cur_res = self.current_results
+                filtered_data = [d for d in cur_res if d.get("filename") != fn_short]
+                self.current_results = filtered_data
 
         res = analyze_ROIs(filename, roi_list, ROIsize,  
                            rotate_angle=self.slider_Rotate.value(),
@@ -642,6 +661,41 @@ class ImageViewer(QWidget):
         try:
             new_row = int(new_row)
             # Assign to grid
+             #######
+            #######
+            centroids = []
+            for p in self.points:
+                cx = p.scenePos().x()
+                cy = p.scenePos().y()
+                centroids.append({"cx": cx, "cy": cy, "area": 100})
+
+            #est_rows = int(self.row_input.text())
+            #est_cols = int(self.col_input.text())
+
+            # If needed, estimate grid dimensions
+            #rc_locked = self.rc_cb.isChecked()
+            #if rc_locked == True:
+            est_rows = int(self.row_input.text())
+            est_cols = int(self.col_input.text())
+            #else:
+            #    centroids_xy = [(d["cx"], d["cy"]) for d in centroids]
+            #    est_rows, est_cols = estimate_grid_dims(centroids_xy)
+            #    self.row_input.setText(str(est_rows))
+            #    self.col_input.setText(str(est_cols))
+            ROIsize = self.slider_ROIsize.value()
+
+            # # Assign centroids to confirmed grid
+            roi_list = assign_rois_to_grid(img=None, centroid_dicts=centroids, expected_rows=est_rows, expected_cols=est_cols, ROI_SIZE=ROIsize, locked=True)
+            self.rois = roi_list
+            print("dog")
+            self.ROI_number_label.setText(f" ROIs found: {len(roi_list)}")
+            self.clear_points()
+            # Run through list of ROIs and add each as overlay point on display
+            for j in range(len(roi_list)):
+                x, y = roi_list[j]['centroid']
+                row = roi_list[j]['row']
+                col = roi_list[j]['col']
+                self.add_point(x,y,row,col)
         except ValueError:
             msg = QMessageBox()
             msg.setWindowTitle("Warning")
@@ -655,6 +709,42 @@ class ImageViewer(QWidget):
         try:
             new_col = int(new_col)
             # Assign to grid
+            # Assign to grid
+            #######
+            #######
+            centroids = []
+            for p in self.points:
+                cx = p.scenePos().x()
+                cy = p.scenePos().y()
+                centroids.append({"cx": cx, "cy": cy, "area": 100})
+
+            #est_rows = int(self.row_input.text())
+            #est_cols = int(self.col_input.text())
+
+            # If needed, estimate grid dimensions
+            #rc_locked = self.rc_cb.isChecked()
+            #if rc_locked == True:
+            est_rows = int(self.row_input.text())
+            est_cols = int(self.col_input.text())
+            #else:
+            #    centroids_xy = [(d["cx"], d["cy"]) for d in centroids]
+            #    est_rows, est_cols = estimate_grid_dims(centroids_xy)
+            #    self.row_input.setText(str(est_rows))
+            #    self.col_input.setText(str(est_cols))
+            ROIsize = self.slider_ROIsize.value()
+
+            # # Assign centroids to confirmed grid
+            roi_list = assign_rois_to_grid(img=None, centroid_dicts=centroids, expected_rows=est_rows, expected_cols=est_cols, ROI_SIZE=ROIsize, locked=True)
+            self.rois = roi_list
+            print("dog")
+            self.ROI_number_label.setText(f" ROIs found: {len(roi_list)}")
+            self.clear_points()
+            # Run through list of ROIs and add each as overlay point on display
+            for j in range(len(roi_list)):
+                x, y = roi_list[j]['centroid']
+                row = roi_list[j]['row']
+                col = roi_list[j]['col']
+                self.add_point(x,y,row,col)
         except ValueError:
             msg = QMessageBox()
             msg.setWindowTitle("Warning")
@@ -662,6 +752,7 @@ class ImageViewer(QWidget):
             msg.setStandardButtons(QMessageBox.StandardButton.Ok)  # Only an OK button
             msg.exec()
             self.col_input.undo()
+
 
 
     # Make text bold for current item in files list
@@ -687,6 +778,7 @@ class ImageViewer(QWidget):
 
         df = pandas.DataFrame(results)
         df.to_csv(fn, index=False)
+        print(f"  [save data] {len(self.current_results)} observations saved to file {PurePath(fn).name}")
 
         reply = QMessageBox.question(
             self, 
