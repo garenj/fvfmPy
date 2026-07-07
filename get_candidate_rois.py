@@ -41,7 +41,8 @@ def detect_centroids(img,
                      MIN_AREA = 200,        # minimum area of a leaf disc to keep
                      GAUSSIAN_BLUR = 3,      # blur kernel to smooth thresholding
                      ADAPTIVE_THRESH_VAL = 101,
-                     WATERSHED_THRESH = 30): # Neighbourhood size for adaptive threshold):
+                     WATERSHED_THRESH = 30,
+                     CONST_VAL = 2): # Neighbourhood size for adaptive threshold):
     """
     Segment leaf discs and return a list of dicts with cx, cy, area.
     No grid assignment — call assign_rois_to_grid() separately.
@@ -51,11 +52,11 @@ def detect_centroids(img,
 
     adaptive_thresh_image = cv2.adaptiveThreshold(blur, 255,
                                               cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                              cv2.THRESH_BINARY, ADAPTIVE_THRESH_VAL, 2)
+                                              cv2.THRESH_BINARY, ADAPTIVE_THRESH_VAL, CONST_VAL)
     #cv2.imwrite("AdaptThresh.png",adaptive_thresh_image)
-    binary = adaptive_thresh_image
+    binary = adaptive_thresh_image.astype(bool) #adaptive_thresh_image
     binary_clean = morphology.remove_small_objects(binary, min_size=MIN_AREA)
-    #cv2.imwrite("MinArea.png",binary_clean)
+    #cv2.imwrite("MinArea.png",255*binary_clean.astype(int))
 
 
     distance = distance_transform_edt(binary_clean)

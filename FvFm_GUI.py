@@ -4,7 +4,7 @@ import pandas
 from pathlib import Path, PurePath
 
 from PySide6.QtCore import Qt, QStringListModel, QRectF
-from PySide6.QtGui import QPixmap, QPen, QColor, QBrush, QFont
+from PySide6.QtGui import QPixmap, QPen, QColor, QBrush, QFont, QKeyEvent
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -45,6 +45,7 @@ MIN_AREA = 200        # minimum area of a leaf disc to keep
 GAUSSIAN_BLUR = 3     # blur kernel to smooth thresholding
 ADAPTIVE_THRESH_VAL = 101 # Neighbourhood size for adaptive thresholding
 WATERSHED_THRESH = 32 # Watershed thresholding size
+CONST_VAL = 2
 
 
 class ImageViewer(QWidget):
@@ -204,7 +205,7 @@ class ImageViewer(QWidget):
         self.GaussBlur_label = QLabel('', self)
 
         self.slider_AdaptThresh = QSlider(Qt.Horizontal)
-        self.slider_AdaptThresh.setRange(25, 75)
+        self.slider_AdaptThresh.setRange(1, 300)
         self.slider_AdaptThresh.setValue((ADAPTIVE_THRESH_VAL-1)/2)
         self.slider_AdaptThresh.setTickPosition(QSlider.TickPosition.TicksAbove)
         self.AdaptThresh_label = QLabel('', self)
@@ -215,11 +216,19 @@ class ImageViewer(QWidget):
         self.slider_Watershed.setTickPosition(QSlider.TickPosition.TicksAbove)
         self.Watershed_label = QLabel('', self)
 
+        self.slider_const = QSlider(Qt.Horizontal)
+        self.slider_const.setRange(-50,255)
+        self.slider_const.setValue(CONST_VAL)
+        self.slider_const.setTickPosition(QSlider.TickPosition.TicksAbove)
+        self.const_label = QLabel('', self)
+
         self.slider_ROIsize.valueChanged.connect(self.update_ROIsize)
         self.slider_MinArea.valueChanged.connect(self.update_MinArea)
         self.slider_GaussBlur.valueChanged.connect(self.update_GaussBlur)
         self.slider_AdaptThresh.valueChanged.connect(self.update_AdaptThresh)
         self.slider_Watershed.valueChanged.connect(self.update_Watershed)
+        self.slider_const.valueChanged.connect(self.update_const)
+
 
         # User parameter adjustments
         form.addRow(self.ROIsize_label)
@@ -241,6 +250,12 @@ class ImageViewer(QWidget):
         form.addRow(self.Watershed_label)
         form.addRow("", self.slider_Watershed)
         self.Watershed_label.setText(f'Watershed segmentation size: {self.slider_Watershed.value()} px')
+
+
+        form.addRow(self.const_label)
+        form.addRow("", self.slider_const)
+        self.const_label.setText(f'Const size: {self.slider_const.value()} px')
+
 
         # ---------------- Main layout ----------------
         layout = QHBoxLayout(self)
@@ -270,6 +285,16 @@ class ImageViewer(QWidget):
             self.load_image(0)
 
     ### METHODS ###
+
+    def keyPressEvent(self, event: QKeyEvent):
+        # Check for both regular Enter (Return) and Numpad Enter keys
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            self.analyze_image()
+            #self.label.setText("You pressed Enter!")
+            event.accept()  # Mark the event as handled
+        else:
+            # Let other key events propagate normally
+            super().keyPressEvent(event)
 
     def start_crop(self):
         button_state = self.crop_button.isChecked()
@@ -307,9 +332,10 @@ class ImageViewer(QWidget):
 
         if self.crop_start is None:
             return
+        if self.crop_mode == False:
+            return
 
         self.crop_end = self.view.mapToScene(event.position().toPoint())
-
         self.crop_mode = False
         self.crop_button.setChecked(False)
 
@@ -390,9 +416,10 @@ class ImageViewer(QWidget):
         GaussBlur = self.slider_GaussBlur.value()
         AdaptThresh = self.slider_AdaptThresh.value()
         Watershed = self.slider_Watershed.value()
-
+        ConstVal = self.slider_const.value()
+        print(MinArea)
         # Generate ROIs
-        centroid_dicts = detect_centroids(new_img, ROIsize, MinArea, 1+2*GaussBlur, 1+2*AdaptThresh, Watershed)
+        centroid_dicts = detect_centroids(new_img, ROIsize, MinArea, 1+2*GaussBlur, 1+2*AdaptThresh, Watershed, ConstVal, )
         centroids_xy = [(d["cx"], d["cy"]) for d in centroid_dicts]
 
         # If needed, estimate grid dimensions
@@ -486,6 +513,8 @@ class ImageViewer(QWidget):
             cy = p.scenePos().y()
             centroids.append({"cx": cx, "cy": cy, "area": 100})
 
+        print(len(centroids))
+
         #est_rows = int(self.row_input.text())
         #est_cols = int(self.col_input.text())
 
@@ -504,6 +533,8 @@ class ImageViewer(QWidget):
         # # Assign centroids to confirmed grid
         roi_list = assign_rois_to_grid(img=None, centroid_dicts=centroids, expected_rows=est_rows, expected_cols=est_cols, ROI_SIZE=ROIsize, locked=True)
         self.rois = roi_list
+        print(len(roi_list))
+        print("hello")
 
         self.ROI_number_label.setText(f" ROIs found: {len(roi_list)}")
         
@@ -631,6 +662,11 @@ class ImageViewer(QWidget):
 
     def update_Watershed(self):
         self.Watershed_label.setText(f'Watershed segmentation size: {self.slider_Watershed.value()} px')
+        self.load_image(self.current_index)
+
+    
+    def update_const(self):
+        self.const_label.setText(f'Const size: {self.slider_const.value()} px')
         self.load_image(self.current_index)
 
     def update_Rotate(self):
