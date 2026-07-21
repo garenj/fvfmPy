@@ -29,13 +29,15 @@ from PySide6.QtWidgets import (
     QListWidgetItem
 )
 
-from load_tif_img import load_tif_img, numpy_to_pixmap
-from get_candidate_rois import detect_centroids, assign_rois_to_grid
-from guess_grid_dims import estimate_grid_dims 
-from analyze_image_GUI import analyze_ROIs
-from convert_pim_to_tif import load_pim_grayscale
-from perspective_corrector import apply_rotation
+# Load utility functions
+from utils.analyze_ROIs import analyze_ROIs
+from utils.apply_rotation import apply_rotation
+from utils.get_candidate_rois import detect_centroids, assign_rois_to_grid
+from utils.load_tif_img import load_tif_img, numpy_to_pixmap
+from utils.load_pim_img import load_pim_grayscale
+from utils.estimate_grid_dims import estimate_grid_dims 
 
+# Allowed image file extensions
 IMAGE_EXTENSIONS = {".tif", ".tiff", ".pim"}
 
 # Default parameter values
@@ -46,7 +48,7 @@ ADAPTIVE_THRESH_VAL = 101 # Neighbourhood size for adaptive thresholding
 WATERSHED_THRESH = 32 # Watershed thresholding size
 CONST_VAL = 2           # Constant offset for adaptive thresholding
 
-
+# Main class
 class ImageViewer(QWidget):
     def __init__(self, image_folder):
         super().__init__()
@@ -229,7 +231,6 @@ class ImageViewer(QWidget):
         self.slider_Watershed.valueChanged.connect(self.update_Watershed)
         self.slider_const.valueChanged.connect(self.update_const)
 
-
         # User parameter adjustments
         form.addRow(self.ROIsize_label)
         form.addRow("", self.slider_ROIsize)
@@ -254,8 +255,6 @@ class ImageViewer(QWidget):
         form.addRow(self.Watershed_label)
         form.addRow("", self.slider_Watershed)
         self.Watershed_label.setText(f'Watershed segmentation size: {self.slider_Watershed.value()} px')
-
-
 
 
         # ---------------- Main layout ----------------
@@ -291,7 +290,6 @@ class ImageViewer(QWidget):
         # Check for both regular Enter (Return) and Numpad Enter keys
         if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             self.analyze_image()
-            #self.label.setText("You pressed Enter!")
             event.accept()  # Mark the event as handled
         else:
             # Let other key events propagate normally
@@ -461,24 +459,13 @@ class ImageViewer(QWidget):
         point.setZValue(0)
         label_text.setZValue(1)
 
-        #print(label_text.boundingRect())
-
         point.setPen(QPen(Qt.blue,2))
         point.setBrush(Qt.BrushStyle.NoBrush)
 
         point.setPos(x, y)
 
-        #print(label_text.parentItem())
-        #print(label_text.scene())
-
         self.scene.addItem(point)
-        #point.update()
         self.scene.update()
-        #_ = label_text.scene()
-        #print(label_text.parentItem())
-        #print(label_text.scene())
-        #label_text.update()
-        #self.scene.addItem(label_text)
         self.points.append(point)
 
     def clear_points(self):
@@ -505,9 +492,6 @@ class ImageViewer(QWidget):
             # Otherwise add one
             self.add_point(scene_pos.x(), scene_pos.y(),0,0)
 
-
-        #######
-        #######
         centroids = []
         for p in self.points:
             cx = p.scenePos().x()
@@ -515,9 +499,6 @@ class ImageViewer(QWidget):
             centroids.append({"cx": cx, "cy": cy, "area": 100})
 
         print(len(centroids))
-
-        #est_rows = int(self.row_input.text())
-        #est_cols = int(self.col_input.text())
 
         # If needed, estimate grid dimensions
         rc_locked = self.rc_cb.isChecked()
@@ -571,7 +552,6 @@ class ImageViewer(QWidget):
         fns_list = None
         if results != None:
             fns_list = [r['filename'] for r in results]
-            #print(fns_list)
 
         # Get ROI list
         roi_list = self.rois
@@ -581,8 +561,6 @@ class ImageViewer(QWidget):
         # Send list of ROIs to FvFm grabber
         filename = str(self.image_paths[index])
         fn_short = PurePath(filename).name
-        #print(fn_short)
-
 
         # TODO:: Make this overwrite
         if fns_list != None:
@@ -615,9 +593,7 @@ class ImageViewer(QWidget):
             self.current_results.extend(res)
 
         self.obs_label.setText(f" Obs. logged: {len(self.current_results)}")
-
         self.toggle_completion()
-
         self.next_image()
 
 
@@ -697,27 +673,15 @@ class ImageViewer(QWidget):
         try:
             new_row = int(new_row)
             # Assign to grid
-             #######
-            #######
             centroids = []
             for p in self.points:
                 cx = p.scenePos().x()
                 cy = p.scenePos().y()
                 centroids.append({"cx": cx, "cy": cy, "area": 100})
 
-            #est_rows = int(self.row_input.text())
-            #est_cols = int(self.col_input.text())
-
             # If needed, estimate grid dimensions
-            #rc_locked = self.rc_cb.isChecked()
-            #if rc_locked == True:
             est_rows = int(self.row_input.text())
             est_cols = int(self.col_input.text())
-            #else:
-            #    centroids_xy = [(d["cx"], d["cy"]) for d in centroids]
-            #    est_rows, est_cols = estimate_grid_dims(centroids_xy)
-            #    self.row_input.setText(str(est_rows))
-            #    self.col_input.setText(str(est_cols))
             ROIsize = self.slider_ROIsize.value()
 
             # # Assign centroids to confirmed grid
@@ -745,28 +709,14 @@ class ImageViewer(QWidget):
         try:
             new_col = int(new_col)
             # Assign to grid
-            # Assign to grid
-            #######
-            #######
             centroids = []
             for p in self.points:
                 cx = p.scenePos().x()
                 cy = p.scenePos().y()
                 centroids.append({"cx": cx, "cy": cy, "area": 100})
 
-            #est_rows = int(self.row_input.text())
-            #est_cols = int(self.col_input.text())
-
-            # If needed, estimate grid dimensions
-            #rc_locked = self.rc_cb.isChecked()
-            #if rc_locked == True:
             est_rows = int(self.row_input.text())
             est_cols = int(self.col_input.text())
-            #else:
-            #    centroids_xy = [(d["cx"], d["cy"]) for d in centroids]
-            #    est_rows, est_cols = estimate_grid_dims(centroids_xy)
-            #    self.row_input.setText(str(est_rows))
-            #    self.col_input.setText(str(est_cols))
             ROIsize = self.slider_ROIsize.value()
 
             # # Assign centroids to confirmed grid
@@ -788,8 +738,6 @@ class ImageViewer(QWidget):
             msg.setStandardButtons(QMessageBox.StandardButton.Ok)  # Only an OK button
             msg.exec()
             self.col_input.undo()
-
-
 
     # Make text bold for current item in files list
     def toggle_completion(self):
@@ -828,7 +776,6 @@ class ImageViewer(QWidget):
         if reply == QMessageBox.StandardButton.Yes:
             self.current_results = None
             self.obs_label.setText(" Obs. logged: 0")
-
 
     # Override the closeEvent method
     def closeEvent(self, event):
