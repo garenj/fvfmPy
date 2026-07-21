@@ -41,11 +41,11 @@ IMAGE_EXTENSIONS = {".tif", ".tiff", ".pim"}
 
 # Default parameter values
 ROI_SIZE = 10         # side length of square ROI (pixels)
-MIN_AREA = 200        # minimum area of a leaf disc to keep
+MIN_AREA = 100        # minimum area of a leaf disc to keep
 GAUSSIAN_BLUR = 3     # blur kernel to smooth thresholding
 ADAPTIVE_THRESH_VAL = 101 # Neighbourhood size for adaptive thresholding
 WATERSHED_THRESH = 32 # Watershed thresholding size
-CONST_VAL = 2
+CONST_VAL = 2           # Constant offset for adaptive thresholding
 
 
 class ImageViewer(QWidget):
@@ -192,7 +192,7 @@ class ImageViewer(QWidget):
         self.ROIsize_label = QLabel('', self)
 
         self.slider_MinArea = QSlider(Qt.Horizontal)
-        self.slider_MinArea.setRange(20, 400)
+        self.slider_MinArea.setRange(10, 400)
         self.slider_MinArea.setValue(MIN_AREA)
         self.slider_MinArea.setTickInterval(40)
         self.slider_MinArea.setTickPosition(QSlider.TickPosition.TicksAbove)
@@ -205,7 +205,7 @@ class ImageViewer(QWidget):
         self.GaussBlur_label = QLabel('', self)
 
         self.slider_AdaptThresh = QSlider(Qt.Horizontal)
-        self.slider_AdaptThresh.setRange(1, 300)
+        self.slider_AdaptThresh.setRange(10, 100)
         self.slider_AdaptThresh.setValue((ADAPTIVE_THRESH_VAL-1)/2)
         self.slider_AdaptThresh.setTickPosition(QSlider.TickPosition.TicksAbove)
         self.AdaptThresh_label = QLabel('', self)
@@ -217,8 +217,9 @@ class ImageViewer(QWidget):
         self.Watershed_label = QLabel('', self)
 
         self.slider_const = QSlider(Qt.Horizontal)
-        self.slider_const.setRange(-50,255)
+        self.slider_const.setRange(-30,30)
         self.slider_const.setValue(CONST_VAL)
+        self.slider_const.setTickInterval(3)
         self.slider_const.setTickPosition(QSlider.TickPosition.TicksAbove)
         self.const_label = QLabel('', self)
 
@@ -235,26 +236,27 @@ class ImageViewer(QWidget):
         form.addRow("", self.slider_ROIsize)
         self.ROIsize_label.setText(f'ROI size: {self.slider_ROIsize.value()} px')
 
-        form.addRow(self.MinArea_label)
-        form.addRow("", self.slider_MinArea)
-        self.MinArea_label.setText(f'Minimum area: {self.slider_MinArea.value()} px')
-
         form.addRow(self.GaussBlur_label)
         form.addRow("", self.slider_GaussBlur)
         self.GaussBlur_label.setText(f'Gaussian blur: {1+2*self.slider_GaussBlur.value()} px')
 
         form.addRow(self.AdaptThresh_label)
         form.addRow("", self.slider_AdaptThresh)
-        self.AdaptThresh_label.setText(f'Adaptive threshold size: {1+2*self.slider_AdaptThresh.value()} px')
+        self.AdaptThresh_label.setText(f'Adaptive threshold neighbourhood size: {1+2*self.slider_AdaptThresh.value()} px')
+
+        form.addRow(self.const_label)
+        form.addRow("", self.slider_const)
+        self.const_label.setText(f'Adaptive threshold constant offset: {self.slider_const.value()} px')
+
+        form.addRow(self.MinArea_label)
+        form.addRow("", self.slider_MinArea)
+        self.MinArea_label.setText(f'Minimum leaf disc area: {self.slider_MinArea.value()} px')
 
         form.addRow(self.Watershed_label)
         form.addRow("", self.slider_Watershed)
         self.Watershed_label.setText(f'Watershed segmentation size: {self.slider_Watershed.value()} px')
 
 
-        form.addRow(self.const_label)
-        form.addRow("", self.slider_const)
-        self.const_label.setText(f'Const size: {self.slider_const.value()} px')
 
 
         # ---------------- Main layout ----------------
@@ -649,7 +651,7 @@ class ImageViewer(QWidget):
         self.load_image(self.current_index)
 
     def update_MinArea(self):
-        self.MinArea_label.setText(f'Minimum area: {self.slider_MinArea.value()} px')
+        self.MinArea_label.setText(f'Minimum leaf disc area: {self.slider_MinArea.value()} px')
         self.load_image(self.current_index)
 
     def update_GaussBlur(self):
@@ -657,16 +659,15 @@ class ImageViewer(QWidget):
         self.load_image(self.current_index)
 
     def update_AdaptThresh(self):
-        self.AdaptThresh_label.setText(f'Adaptive threshold size: {1+2*self.slider_AdaptThresh.value()} px')
+        self.AdaptThresh_label.setText(f'Adaptive threshold neighbourhood size: {1+2*self.slider_AdaptThresh.value()} px')
         self.load_image(self.current_index)
 
     def update_Watershed(self):
         self.Watershed_label.setText(f'Watershed segmentation size: {self.slider_Watershed.value()} px')
         self.load_image(self.current_index)
-
     
     def update_const(self):
-        self.const_label.setText(f'Const size: {self.slider_const.value()} px')
+        self.const_label.setText(f'Adaptive threshold constant offset: {self.slider_const.value()} px')
         self.load_image(self.current_index)
 
     def update_Rotate(self):
