@@ -416,7 +416,7 @@ class ImageViewer(QWidget):
         AdaptThresh = self.slider_AdaptThresh.value()
         Watershed = self.slider_Watershed.value()
         ConstVal = self.slider_const.value()
-        print(MinArea)
+
         # Generate ROIs
         centroid_dicts = detect_centroids(new_img, ROIsize, MinArea, 1+2*GaussBlur, 1+2*AdaptThresh, Watershed, ConstVal, )
         centroids_xy = [(d["cx"], d["cy"]) for d in centroid_dicts]
@@ -498,7 +498,7 @@ class ImageViewer(QWidget):
             cy = p.scenePos().y()
             centroids.append({"cx": cx, "cy": cy, "area": 100})
 
-        print(len(centroids))
+
 
         # If needed, estimate grid dimensions
         rc_locked = self.rc_cb.isChecked()
@@ -685,7 +685,7 @@ class ImageViewer(QWidget):
             # # Assign centroids to confirmed grid
             roi_list = assign_rois_to_grid(img=None, centroid_dicts=centroids, expected_rows=est_rows, expected_cols=est_cols, ROI_SIZE=ROIsize, locked=True)
             self.rois = roi_list
-            print("dog")
+
             self.ROI_number_label.setText(f" ROIs found: {len(roi_list)}")
             self.clear_points()
             # Run through list of ROIs and add each as overlay point on display
@@ -720,7 +720,7 @@ class ImageViewer(QWidget):
             # # Assign centroids to confirmed grid
             roi_list = assign_rois_to_grid(img=None, centroid_dicts=centroids, expected_rows=est_rows, expected_cols=est_cols, ROI_SIZE=ROIsize, locked=True)
             self.rois = roi_list
-            print("dog")
+
             self.ROI_number_label.setText(f" ROIs found: {len(roi_list)}")
             self.clear_points()
             # Run through list of ROIs and add each as overlay point on display

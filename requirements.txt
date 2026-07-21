@@ -4,4 +4,4 @@ opencv-python
 pandas
 PySide6
 scipy
-skimage
+scikit-image

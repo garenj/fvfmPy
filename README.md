@@ -39,7 +39,7 @@ opencv-python
 pandas
 PySide6
 scipy
-skimage
+scikit-image
 ```
 
 ---
@@ -49,7 +49,7 @@ skimage
 ```bash
 # 1. Clone the repo
 git clone https://github.com/garenj/fvfmPy.git
-cd fvfm-pipeline
+cd fvfmPy
 
 # 2. Create and activate a virtual environment
 python3 -m venv .venv          # macOS
@@ -72,12 +72,12 @@ python3 fvfmPy.py
 | File | Description |
 |---|---|
 | `fvfmPy.py` | Main pipeline script |
+| `utils/analyze_ROIs.py` | Extracts fluorescence metrics from image|
+| `utils/apply_rotation.py` | Applies a given rotation to image |
+| `utils/estimate_grid_dims.py` | Jenks natural-break grid dimension estimator |
 | `utils/get_candidate_rois.py` | Watershed-based leaf disc centroid detection and grid assignment |
-| `guess_grid_dims.py` | Jenks natural-break grid dimension estimator |
-| `roi_picker.py` | Interactive ROI review GUI |
-| `image_cropper.py` | Interactive crop GUI |
-| `perspective_corrector.py` | Interactive rotation correction GUI |
-| `load_tif_img.py` | Multi-frame TIFF loader |
+| `utils/load_pim_img.py` | Reader for proprietary Walz .PIM format|
+| `utils/load_tif_img.py` | Multi-frame .TIF loader |
 | `requirements.txt` | Python dependency list |
 | `USER_GUIDE.pdf` | Full step-by-step user documentation |
 
