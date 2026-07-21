@@ -1,6 +1,5 @@
 import struct
 import numpy as np
-import tifffile
 import zlib
 
 # Function for reading TLV-style (type-length-value) files (needed to read decompressed PIMs)

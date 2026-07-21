@@ -515,8 +515,6 @@ class ImageViewer(QWidget):
         # # Assign centroids to confirmed grid
         roi_list = assign_rois_to_grid(img=None, centroid_dicts=centroids, expected_rows=est_rows, expected_cols=est_cols, ROI_SIZE=ROIsize, locked=True)
         self.rois = roi_list
-        print(len(roi_list))
-        print("hello")
 
         self.ROI_number_label.setText(f" ROIs found: {len(roi_list)}")
         

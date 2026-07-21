@@ -1,6 +1,7 @@
-opencv-python
-numpy
-pandas
-scipy
-scikit-image
 matplotlib
+numpy
+opencv-python
+pandas
+PySide6
+scipy
+skimage
