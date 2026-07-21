@@ -3,14 +3,13 @@ import numpy as np
 import pandas
 from pathlib import Path, PurePath
 
-from PySide6.QtCore import Qt, QStringListModel, QRectF
-from PySide6.QtGui import QPixmap, QPen, QColor, QBrush, QFont, QKeyEvent
+from PySide6.QtCore import Qt, QRectF
+from PySide6.QtGui import QPen, QFont, QKeyEvent
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QFormLayout,
     QGraphicsRectItem,
-    QGraphicsTextItem,
     QGraphicsSimpleTextItem,
     QGraphicsPixmapItem,
     QGraphicsScene,
@@ -25,9 +24,9 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QListView,
     QAbstractItemView,
-    QFrame,
     QMessageBox,
-    QListWidget, QListWidgetItem
+    QListWidget, 
+    QListWidgetItem
 )
 
 from load_tif_img import load_tif_img, numpy_to_pixmap
