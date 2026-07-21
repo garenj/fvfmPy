@@ -85,13 +85,7 @@ python3 fvfmPy.py
 
 ## Output
 
-All output files are written to the TIFF folder:
-
-| File | Description |
-|---|---|
-| `results_all.csv` | One row per leaf disc: filename, row, col, leaf_number, centroid_x/y, mean_Fo, mean_Fm, FvFm |
-| `output<filename>.jpg` | Annotated visualisation for each TIFF (blue ROIs, row/col labels; orange = duplicate assignment) |
-| `checkpoint.json` | Progress file for resuming interrupted sessions |
+Output is written to a "long-format" .CSV file in a location specified by the user. A complete description of the output file format can be found in [USER_GUIDE.pdf](USER_GUIDE.pdf).
 
 ---
 
@@ -124,10 +118,10 @@ prompts (grid dimensions, CSV overwrite) appear in the R console.
 
 ## Documentation
 
-See [USER_GUIDE.pdf](USER_GUIDE.pdf) for detailed installation instructions, a walkthrough of every interactive step, output file descriptions, and troubleshooting.
+See [USER_GUIDE.pdf](USER_GUIDE.pdf) for detailed walkthrough of the data analysis pipeline, description of optional processing steps, output file descriptions, and troubleshooting tips.
 
 ---
 
 ## Authors
 
-Josef Garen and Pieter Arnold  
+Josef Garen, Pieter Arnold, and Kristine Crous
