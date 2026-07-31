@@ -612,6 +612,7 @@ class ImageViewer(QWidget):
 
         dialog = QFileDialog(self)
         dialog.setFileMode(QFileDialog.Directory)
+        dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)
         if dialog.exec():
             fileNames = dialog.selectedFiles()
             self.refresh_image_folder(fileNames[0])
@@ -750,7 +751,8 @@ class ImageViewer(QWidget):
                                         None,
                                         "Save File",
                                         "results.csv",
-                                        "Comma-separated value files (*.csv)"
+                                        "Comma-separated value files (*.csv)",
+                                        options=QFileDialog.Option.DontUseNativeDialog
                                     )
         
         if fn == "":
