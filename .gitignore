@@ -2,6 +2,11 @@
 __pycache__/
 *.py[cod]
 
+# Build info
+fvfmPy.egg-info/
+dist/
+build/
+
 # Virtual environments
 venv/
 .venv/
@@ -19,6 +24,9 @@ output*.jpg
 *.tif
 *.tiff
 *.pim
+
+# Data files
+*.csv
 
 # Archives
 *.zip

@@ -802,7 +802,8 @@ class ImageViewer(QWidget):
             event.ignore() # Cancel the close event
 
 
-if __name__ == "__main__":
+def run_fvfmPy(folder=None):
+
     app = QApplication(sys.argv)
 
     # Change this to your image folder
@@ -811,4 +812,16 @@ if __name__ == "__main__":
     window = ImageViewer(folder)
     window.show()
 
-    sys.exit(app.exec())
+    app.exec()
+
+if __name__ == "__main__":
+    #app = QApplication(sys.argv)
+
+    # Change this to your image folder
+    #folder = "." #FILE_PATH
+
+    #window = ImageViewer(folder)
+    #window.show()
+    run_fvfmPy()
+
+    #sys.exit(app.exec())
