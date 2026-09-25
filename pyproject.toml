@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fvfmPy"
+version = "1.0.3"
+description = "Interactive leaf image analysis software"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+
+authors = [
+  {name = "Josef Garen"},
+  {name = "Pieter Arnold"},
+  {name = "Kristine Crous"}
+]
+
+keywords = [
+  "plants",
+  "fluorescence",
+  "heat tolerance",
+  "image-analysis",
+  "phenotyping",
+  "ecophysiology"
+]
+
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent"
+]
+
+dependencies = [
+    "numpy",
+    "opencv-python",
+    "scipy",
+    "scikit-image",
+    "PySide6",
+    "matplotlib",
+    "pandas"
+]
+
+[project.urls]
+"Github" = "https://github.com/garenj/fvfmPy"
+"User's Guide" = "https://github.com/garenj/fvfmPy/blob/876176313b9d5a737e4ec425b3f6ad44c19b8fb5/USER_GUIDE.pdf"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+fvfmPy = "fvfmPy:run_fvfmPy"

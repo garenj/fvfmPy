@@ -30,12 +30,12 @@ from PySide6.QtWidgets import (
 )
 
 # Load utility functions
-from utils.analyze_ROIs import analyze_ROIs
-from utils.apply_rotation import apply_rotation
-from utils.get_candidate_rois import detect_centroids, assign_rois_to_grid
-from utils.load_tif_img import load_tif_img, numpy_to_pixmap
-from utils.load_pim_img import load_pim_grayscale
-from utils.estimate_grid_dims import estimate_grid_dims 
+from .analyze_ROIs import analyze_ROIs
+from .apply_rotation import apply_rotation
+from .get_candidate_rois import detect_centroids, assign_rois_to_grid
+from .load_tif_img import load_tif_img, numpy_to_pixmap
+from .load_pim_img import load_pim_grayscale
+from .estimate_grid_dims import estimate_grid_dims 
 
 # Allowed image file extensions
 IMAGE_EXTENSIONS = {".tif", ".tiff", ".pim"}

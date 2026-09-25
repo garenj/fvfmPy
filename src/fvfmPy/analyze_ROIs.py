@@ -1,8 +1,8 @@
 import cv2
 from pathlib import PurePath
 
-from utils.load_pim_img import load_pim
-from utils.apply_rotation import apply_rotation
+from .load_pim_img import load_pim
+from .apply_rotation import apply_rotation
 
 # Function to extract fluorescence metrics from currently identified ROIs
 def analyze_ROIs(fn, rois, ROIsize, rotate_angle = None, crop_rect=None):

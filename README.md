@@ -1,4 +1,4 @@
-# fvfmPy and fvfmR: Fluorescence Processing Pipeline
+# fvfmPy: Fluorescence Imaging Processing Pipeline
 
 Semi-automated analysis of leaf disc fluorescence images from a [Walz ImagingPAM](https://www.walz.com/) fluorometer.
 
@@ -8,7 +8,7 @@ This program automatically identifies regions of interest in leaf disc arrays, c
 
 ## Overview
 
-This program (`fvfmPy.py`) is a semi-automated data analysis pipeline that processes fluorescence images generated from a Walz ImagingPAM fluorometer. The user specifies a folder containing .PIM or .TIF images, and for each image:
+This program is a semi-automated data analysis pipeline that processes fluorescence images generated from a Walz ImagingPAM fluorometer. The user specifies a folder containing .PIM or .TIF images, and for each image:
 
 1. The program attempts to automatically identify regions of interest (ROIs)
 2. The program estimates row and column numbers
@@ -30,7 +30,7 @@ Optionally, the user has the opportunity to:
 - Python 3.9 or later
 - Windows 10/11 or macOS 10.15+
 
-Python dependencies (install once with `pip install -r requirements.txt`):
+Python dependencies:
 
 ```
 matplotlib
@@ -47,22 +47,13 @@ scikit-image
 ## Quick start
 
 ```bash
-# 1. Clone the repo
-git clone https://github.com/garenj/fvfmPy.git
-cd fvfmPy
+# 1. Create a new virtual environment: 
+python3 -m venv .venv 
 
-# 2. Create and activate a virtual environment
-python3 -m venv .venv          # macOS
-source .venv/bin/activate      # macOS
+# 2. Install fvfmPy within the virtual environment: 
+.\.venv\Scripts\python.exe -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ fvfmPy==1.0.0 
 
-python -m venv .venv         # Windows
-.venv\Scripts\activate       # Windows
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Run the FvFm pipeline
-python3 fvfmPy.py 
+# 3. Run fvfmPy: .\.venv\Scripts\fvfmPy.exe
 ```
 
 ---
@@ -71,13 +62,13 @@ python3 fvfmPy.py
 
 | File | Description |
 |---|---|
-| `fvfmPy.py` | Main pipeline script |
-| `utils/analyze_ROIs.py` | Extracts fluorescence metrics from image|
-| `utils/apply_rotation.py` | Applies a given rotation to image |
-| `utils/estimate_grid_dims.py` | Jenks natural-break grid dimension estimator |
-| `utils/get_candidate_rois.py` | Watershed-based leaf disc centroid detection and grid assignment |
-| `utils/load_pim_img.py` | Reader for proprietary Walz .PIM format|
-| `utils/load_tif_img.py` | Multi-frame .TIF loader |
+| `src/fvfmPy/fvfmPy.py` | Main pipeline script |
+| `src/fvfmPy/analyze_ROIs.py` | Extracts fluorescence metrics from image|
+| `src/fvfmPy/apply_rotation.py` | Applies a given rotation to image |
+| `src/fvfmPy/estimate_grid_dims.py` | Jenks natural-break grid dimension estimator |
+| `src/fvfmPy/get_candidate_rois.py` | Watershed-based leaf disc centroid detection and grid assignment |
+| `src/fvfmPy/load_pim_img.py` | Reader for proprietary Walz .PIM format|
+| `src/fvfmPy/load_tif_img.py` | Multi-frame .TIF loader |
 | `requirements.txt` | Python dependency list |
 | `USER_GUIDE.pdf` | Full step-by-step user documentation |
 
@@ -85,40 +76,21 @@ python3 fvfmPy.py
 
 ## Output
 
-Output is written to a "long-format" .CSV file in a location specified by the user. A complete description of the output file format can be found in [USER_GUIDE.pdf](USER_GUIDE.pdf).
+Output is written to a "long-format" .CSV file in a location specified by the user. A complete description of the output file format can be found in the [User's Guide](https://github.com/garenj/fvfmPy/blob/876176313b9d5a737e4ec425b3f6ad44c19b8fb5/USER_GUIDE.pdf).
 
 ---
 
 ## R package
 
-For users who prefer R and RStudio, an R wrapper package is available in the
-[`fvfmR/`](fvfmR/) subdirectory. It exposes the same pipeline via three
+For users who prefer R and RStudio, an R wrapper package is available from this [link](https://github.com/garenj/fvfmR). It exposes the same pipeline via three
 simple R functions, with the Python backend running transparently via
 [reticulate](https://rstudio.github.io/reticulate/).
-
-```r
-# Install from GitHub (run once)
-remotes::install_github("garenj/fvfmPy", subdir = "fvfmR")
-
-# Set up the Python environment (run once after installing)
-library(fvfm)
-fvfm_setup()
-
-# Use
-convert_pim("path/to/pim/folder")           # generate ImagingWin script.prg
-run_fvfm("path/to/tif/folder")              # run the full analysis pipeline
-run_fvfm("path/to/tif/folder",
-         lock_transforms = TRUE)            # lock rotation/crop across images
-```
-
-The OpenCV GUI windows appear as native OS windows alongside RStudio. Text
-prompts (grid dimensions, CSV overwrite) appear in the R console.
 
 ---
 
 ## Documentation
 
-See [USER_GUIDE.pdf](USER_GUIDE.pdf) for detailed walkthrough of the data analysis pipeline, description of optional processing steps, output file descriptions, and troubleshooting tips.
+See the [User's Guide](https://github.com/garenj/fvfmPy/blob/876176313b9d5a737e4ec425b3f6ad44c19b8fb5/USER_GUIDE.pdf) for detailed walkthrough of the data analysis pipeline, description of optional processing steps, output file descriptions, and troubleshooting tips.
 
 ---
 
