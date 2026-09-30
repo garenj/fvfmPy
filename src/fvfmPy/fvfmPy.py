@@ -387,13 +387,21 @@ class ImageViewer(QWidget):
 
         # Load new image into memory and display
         fn = str(self.image_paths[index])
-        if fn.endswith(".tif") or fn.endswith(".tiff"):
+        ext = Path(fn).suffix.lower()
+        if ext in (".tif", ".tiff"):
             new_img = load_tif_img(fn)
-        elif fn.endswith(".pim"):
+        elif ext == ".pim":
             new_img = load_pim_grayscale(fn)
         else:
             print("File format incorrect")
             return
+        #if fn.endswith(".tif") or fn.endswith(".tiff"):
+        #    new_img = load_tif_img(fn)
+        #elif fn.endswith(".pim"):
+        #    new_img = load_pim_grayscale(fn)
+        #else:
+        #    print("File format incorrect")
+        #    return
 
         # Check for rotation or cropping
         rotate = self.slider_Rotate.value()
@@ -804,14 +812,18 @@ class ImageViewer(QWidget):
 
 def run_fvfmPy(folder=None):
 
-    app = QApplication(sys.argv)
+    #app = QApplication(sys.argv)
 
     # Change this to your image folder
-    folder = "." #FILE_PATH
+    #folder = "." #FILE_PATH
 
-    window = ImageViewer(folder)
+    #window = ImageViewer(folder)
+    #window.show()
+
+    #app.exec()
+    app = QApplication.instance() or QApplication(sys.argv)
+    window = ImageViewer(folder or ".")
     window.show()
-
     app.exec()
 
 if __name__ == "__main__":

@@ -27,7 +27,7 @@ Optionally, the user has the opportunity to:
 
 ## Requirements
 
-- Python 3.9 or later
+- Python 3.10 or later
 - Windows 10/11 or macOS 10.15+
 
 Python dependencies:

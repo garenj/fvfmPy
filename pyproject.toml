@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fvfmPy"
-version = "1.0.3"
+version = "1.0.0"
 description = "Interactive leaf image analysis software"
 readme = "README.md"
 requires-python = ">=3.10"

@@ -46,7 +46,7 @@ def detect_centroids(img,
     binary = adaptive_thresh_image.astype(bool)
 
     # Filter out small objects/debris
-    binary_clean = morphology.remove_small_objects(binary, min_size=MIN_AREA)
+    binary_clean = morphology.remove_small_objects(binary, max_size=MIN_AREA)
 
     # Watershed segmentation
     distance = distance_transform_edt(binary_clean)

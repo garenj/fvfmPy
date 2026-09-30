@@ -10,7 +10,9 @@ def analyze_ROIs(fn, rois, ROIsize, rotate_angle = None, crop_rect=None):
     images = []
 
     # Load data file frames
-    if fn.endswith(".tif") or fn.endswith(".tiff"):
+    ext = PurePath(fn).suffix.lower()
+    if ext in (".tif", ".tiff"):
+    #if fn.endswith(".tif") or fn.endswith(".tiff"):
         # Read the multi-frame TIFF file
         success, images = cv2.imreadmulti(fn, images, flags=cv2.IMREAD_UNCHANGED)
         if not success or len(images) < 2:
@@ -18,7 +20,8 @@ def analyze_ROIs(fn, rois, ROIsize, rotate_angle = None, crop_rect=None):
                 f"Expected at least 2 frames in '{fn}', got {len(images)}. "
                 "Check the file is a valid Walz PAM TIFF export."
             )
-    elif fn.endswith(".pim"):
+    elif ext == ".pim":
+    #elif fn.endswith(".pim"):
         images = load_pim(fn)
         if len(images) < 2:
             raise RuntimeError(
@@ -26,8 +29,9 @@ def analyze_ROIs(fn, rois, ROIsize, rotate_angle = None, crop_rect=None):
                 "Check the file is a valid Walz PAM .pim file"
             )
     else:
-        print("File format incorrect")
-        return
+        #print("File format incorrect")
+        raise ValueError(f"Unsupported file format: {fn}")
+        #return
     
     # Get just the important frames
     Fo_frame = images[0]
