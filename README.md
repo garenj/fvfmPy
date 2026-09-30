@@ -46,15 +46,33 @@ scikit-image
 
 ## Quick start
 
+We recommend the following steps to install and launch fvfmPy in a Python Virtual Environment.
+
+Windows PowerShell:
+```powershell
+# 1. Create a new virtual environment: 
+python3 -m venv .venv 
+
+# 2. Install fvfmPy within the virtual environment: 
+.\.venv\Scripts\python.exe -m pip install fvfmPy
+
+# 3. Run fvfmPy: 
+.\.venv\Scripts\fvfmPy.exe
+```
+
+MacOS Terminal:
 ```bash
 # 1. Create a new virtual environment: 
 python3 -m venv .venv 
 
 # 2. Install fvfmPy within the virtual environment: 
-.\.venv\Scripts\python.exe -m pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ fvfmPy==1.0.0 
+.venv/bin/python -m pip install fvfmPy
 
-# 3. Run fvfmPy: .\.venv\Scripts\fvfmPy.exe
+# 3. Activate virtual environment and run fvfmPy: 
+source .venv/bin/activate
+fvfmPy
 ```
+
 
 ---
 
