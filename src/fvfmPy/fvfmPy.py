@@ -378,6 +378,10 @@ class ImageViewer(QWidget):
 
     def load_image(self, index):
 
+        # Check if index is valid and if there are images to load
+        if not self.image_paths or index < 0 or index >= len(self.image_paths):
+            return
+
         # Clear points from screen and set index
         self.clear_points()
         self.current_index = index
@@ -395,14 +399,7 @@ class ImageViewer(QWidget):
         else:
             print("File format incorrect")
             return
-        #if fn.endswith(".tif") or fn.endswith(".tiff"):
-        #    new_img = load_tif_img(fn)
-        #elif fn.endswith(".pim"):
-        #    new_img = load_pim_grayscale(fn)
-        #else:
-        #    print("File format incorrect")
-        #    return
-
+ 
         # Check for rotation or cropping
         rotate = self.slider_Rotate.value()
         crop = self.crop_coordinates
@@ -553,6 +550,10 @@ class ImageViewer(QWidget):
         self.load_image(index)
 
     def analyze_image(self):
+
+        # Check if there are any ROIs to analyze   
+        if not self.rois:
+            return
 
         results = self.current_results
         fns_list = None
@@ -812,28 +813,12 @@ class ImageViewer(QWidget):
 
 def run_fvfmPy(folder=None):
 
-    #app = QApplication(sys.argv)
-
-    # Change this to your image folder
-    #folder = "." #FILE_PATH
-
-    #window = ImageViewer(folder)
-    #window.show()
-
-    #app.exec()
     app = QApplication.instance() or QApplication(sys.argv)
     window = ImageViewer(folder or ".")
     window.show()
     app.exec()
 
 if __name__ == "__main__":
-    #app = QApplication(sys.argv)
 
-    # Change this to your image folder
-    #folder = "." #FILE_PATH
-
-    #window = ImageViewer(folder)
-    #window.show()
     run_fvfmPy()
 
-    #sys.exit(app.exec())
